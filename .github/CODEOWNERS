@@ -1,0 +1,14 @@
+# Default owners
+* @maintainers
+
+# Framework-specific reviewers
+/frameworks/react/ @react-reviewers
+/frameworks/angular/ @angular-reviewers
+/frameworks/vue/ @vue-reviewers
+/frameworks/svelte/ @svelte-reviewers
+
+# Benchmark harness
+/packages/bench-harness/ @benchmark-maintainers
+
+# CI/CD
+/.github/workflows/ @devops-team

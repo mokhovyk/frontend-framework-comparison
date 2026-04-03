@@ -1,0 +1,74 @@
+<div class="dashboard">
+  <h1>Angular - Real-Time Dashboard</h1>
+
+  <div class="dashboard-controls">
+    <button (click)="toggleRunning()">
+      {{ isRunning() ? 'Stop' : 'Start' }}
+    </button>
+
+    <div class="speed-slider">
+      <label>Speed: {{ speed() }} batches/sec</label>
+      <input
+        type="range"
+        min="1"
+        max="60"
+        [value]="speed()"
+        (input)="onSpeedChange($event)"
+      />
+    </div>
+
+    <button class="secondary" (click)="runBenchmark()">Benchmark</button>
+
+    @if (benchmarkResult(); as result) {
+      <span style="font-size: 12px; color: var(--color-text-secondary); font-family: var(--font-mono);">
+        Frames: {{ result.framesRendered }} |
+        Dropped: {{ result.droppedFrames }} |
+        Avg: {{ result.avgFrameTime }}ms |
+        P99: {{ result.p99FrameTime }}ms |
+        Duration: {{ result.duration }}ms
+      </span>
+    }
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- 4 Line Charts -->
+    @for (i of [0, 1, 2, 3]; track i) {
+      <app-chart-widget
+        [title]="'Line Chart ' + (i + 1)"
+        type="line"
+        [data]="lineChartData()[i]"
+        [color]="chartColors[i]"
+      ></app-chart-widget>
+    }
+
+    <!-- 4 Bar Charts -->
+    @for (i of [0, 1, 2, 3]; track i) {
+      <app-chart-widget
+        [title]="'Bar Chart ' + (i + 1)"
+        type="bar"
+        [data]="barChartData()[i]"
+        [color]="chartColors[i]"
+      ></app-chart-widget>
+    }
+
+    <!-- 2 KPI Cards -->
+    @for (kpi of kpis(); track $index) {
+      <app-kpi-card
+        [title]="$index === 0 ? 'Revenue' : 'Users'"
+        [value]="kpi.value"
+        [delta]="kpi.delta"
+      ></app-kpi-card>
+    }
+
+    <!-- Dashboard Table -->
+    <app-dashboard-table
+      [data]="tableData()"
+      [flashingCells]="flashingCells()"
+    ></app-dashboard-table>
+
+    <!-- Status Grid -->
+    <app-status-grid
+      [cells]="statusCells()"
+    ></app-status-grid>
+  </div>
+</div>

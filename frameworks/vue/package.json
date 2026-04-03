@@ -1,0 +1,32 @@
+{
+  "name": "framework-vue",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:table": "vite serve apps/table",
+    "dev:nested-tree": "vite serve apps/nested-tree",
+    "dev:dashboard": "vite serve apps/dashboard",
+    "dev:form": "vite serve apps/form",
+    "dev:router": "vite serve apps/router",
+    "build:table": "vite build apps/table --outDir ../../dist/table",
+    "build:nested-tree": "vite build apps/nested-tree --outDir ../../dist/nested-tree",
+    "build:dashboard": "vite build apps/dashboard --outDir ../../dist/dashboard",
+    "build:form": "vite build apps/form --outDir ../../dist/form",
+    "build:router": "vite build apps/router --outDir ../../dist/router",
+    "build:all": "pnpm build:table && pnpm build:nested-tree && pnpm build:dashboard && pnpm build:form && pnpm build:router",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vue-tsc": "^2.2.0",
+    "shared-data": "workspace:*",
+    "shared-css": "workspace:*"
+  }
+}

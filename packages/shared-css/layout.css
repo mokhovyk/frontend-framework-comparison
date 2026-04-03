@@ -1,0 +1,181 @@
+/* === Layout Styles (Router App) === */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+  width: 220px;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  padding: 0 16px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 8px;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar nav a {
+  padding: 8px 16px;
+  color: var(--color-text-secondary);
+  transition: background var(--transition), color var(--transition);
+}
+
+.sidebar nav a:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sidebar nav a.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Page Transitions */
+.page-enter {
+  opacity: 0;
+}
+
+.page-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-line:last-child {
+  width: 60%;
+}
+
+.skeleton-block {
+  height: 200px;
+  margin-bottom: 16px;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.page-header p {
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* Login Page */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card h2 {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Notifications List */
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-item {
+  padding: 10px 12px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius);
+  border-left: 3px solid transparent;
+}
+
+.notification-item.unread {
+  border-left-color: var(--color-primary);
+}
+
+/* Search */
+.search-container {
+  max-width: 600px;
+}
+
+.search-results {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-result-item {
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius);
+}
+
+.search-result-item h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.search-result-item p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

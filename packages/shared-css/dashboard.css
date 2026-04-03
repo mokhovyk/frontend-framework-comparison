@@ -1,0 +1,130 @@
+/* === Dashboard Styles === */
+
+.dashboard {
+  padding: 16px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+  height: calc(100vh - 120px);
+}
+
+.widget {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.widget-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.widget canvas {
+  width: 100%;
+  flex: 1;
+}
+
+/* KPI Cards */
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.kpi-delta {
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.kpi-delta.positive {
+  color: var(--color-success);
+}
+
+.kpi-delta.negative {
+  color: var(--color-error);
+}
+
+/* Dashboard Table */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.dashboard-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-table td.flash {
+  animation: cell-flash 0.3s ease;
+}
+
+@keyframes cell-flash {
+  0% { background: var(--color-primary); }
+  100% { background: transparent; }
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  flex: 1;
+}
+
+.status-cell {
+  border-radius: 2px;
+  aspect-ratio: 1;
+  transition: background var(--transition);
+}
+
+.status-cell.ok { background: var(--color-success); }
+.status-cell.warning { background: var(--color-warning); }
+.status-cell.error { background: var(--color-error); }
+.status-cell.idle { background: var(--color-bg-tertiary); }
+
+/* Controls */
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.speed-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-slider input[type='range'] {
+  width: 120px;
+  border: none;
+  padding: 0;
+}
+
+.speed-slider label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

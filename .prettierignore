@@ -1,0 +1,6 @@
+dist/
+node_modules/
+results/
+.angular/
+.svelte-kit/
+pnpm-lock.yaml

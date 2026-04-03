@@ -1,0 +1,105 @@
+/* === Data Table Styles === */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.data-table th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.data-table th .sort-indicator {
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+.data-table th .sort-indicator.active {
+  opacity: 1;
+}
+
+.data-table tr:hover {
+  background: var(--color-bg-secondary);
+}
+
+.data-table tr.selected {
+  background: var(--color-selected);
+}
+
+.data-table td.editing {
+  padding: 2px 4px;
+}
+
+.data-table td.editing input {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.data-table .active-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.data-table .active-badge.active {
+  background: var(--color-success);
+  color: white;
+}
+
+.data-table .active-badge.inactive {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.pagination button {
+  min-width: 32px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.pagination .page-info {
+  padding: 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.pagination input {
+  width: 60px;
+  text-align: center;
+  font-size: 13px;
+}

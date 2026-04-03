@@ -1,0 +1,14 @@
+@import 'shared-css/base.css';
+@import 'shared-css/layout.css';
+@import 'shared-css/table.css';
+@import 'shared-css/dashboard.css';
+@import 'shared-css/form.css';
+
+.page-fade {
+  animation: pageFadeIn 200ms ease;
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

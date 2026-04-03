@@ -1,0 +1,29 @@
+services:
+  benchmark:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    cpus: 2
+    mem_limit: 4g
+    volumes:
+      - ../results:/app/results
+    environment:
+      - NODE_ENV=production
+      - BENCHMARK_RUNS=25
+      - BENCHMARK_WARMUP=5
+    command: ["pnpm", "run", "benchmark"]
+
+  benchmark-reduced:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    cpus: 2
+    mem_limit: 4g
+    volumes:
+      - ../results:/app/results
+    environment:
+      - NODE_ENV=production
+      - BENCHMARK_RUNS=10
+      - BENCHMARK_WARMUP=3
+      - BENCHMARK_REDUCED=true
+    command: ["pnpm", "run", "benchmark"]

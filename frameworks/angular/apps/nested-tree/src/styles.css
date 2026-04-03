@@ -1,0 +1,45 @@
+@import 'shared-css/base.css';
+
+.nested-tree {
+  padding: 16px;
+}
+
+.level {
+  padding: 4px 0 4px 16px;
+  border-left: 1px solid var(--color-border);
+}
+
+.level[data-theme='dark'] {
+  background: transparent;
+}
+
+.level[data-theme='light'] {
+  background: transparent;
+}
+
+.level-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.level-header .toggle-btn {
+  padding: 0 6px;
+  font-size: 12px;
+  min-width: 24px;
+}
+
+.level-header .level-info {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.leaf-timestamp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-primary);
+  padding: 4px 8px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius);
+}
