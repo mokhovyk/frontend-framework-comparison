@@ -1,0 +1,27 @@
+{
+  "name": "frontend-framework-comparison",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend Framework Benchmark Suite — React, Angular, Vue, Svelte",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "build:all": "bash scripts/build-all.sh",
+    "benchmark": "bash scripts/benchmark.sh",
+    "test:parity": "pnpm --filter parity-tests test",
+    "report": "pnpm --filter results-site generate",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
+  }
+}

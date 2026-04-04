@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "shared-data": ["../../packages/shared-data/src/index.ts"],
+      "shared-data/*": ["../../packages/shared-data/src/*.ts"]
+    }
+  },
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "vite-env.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

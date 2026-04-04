@@ -1,0 +1,39 @@
+node_modules/
+dist/
+.angular/cache
+.svelte-kit/
+.vite/
+*.tsbuildinfo
+
+# Build outputs
+frameworks/*/apps/*/dist/
+packages/*/dist/
+
+# Results (keep latest.json and archive, ignore DB)
+results/benchmark.db
+results/benchmark.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Docker
+docker/.env
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

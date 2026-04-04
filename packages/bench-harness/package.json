@@ -1,0 +1,24 @@
+{
+  "name": "bench-harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/runner.js",
+  "types": "dist/runner.d.ts",
+  "bin": {
+    "bench-harness": "dist/runner.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/runner.js"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "typescript": "^5.7.0"
+  }
+}

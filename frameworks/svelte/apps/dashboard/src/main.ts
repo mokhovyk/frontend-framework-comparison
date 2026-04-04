@@ -1,0 +1,8 @@
+import 'shared-css/base.css';
+import 'shared-css/dashboard.css';
+import { mount } from 'svelte';
+import App from './App.svelte';
+
+const app = mount(App, { target: document.getElementById('app')! });
+
+export default app;

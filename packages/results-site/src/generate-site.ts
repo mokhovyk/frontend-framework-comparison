@@ -1,0 +1,69 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { generateChartSpecs, toVegaLiteSpec } from './generate-charts.js';
+import { generateMarkdownTable } from './generate-readme.js';
+
+const RESULTS_PATH = join('..', '..', 'results', 'latest.json');
+const OUTPUT_DIR = join('..', '..', 'results', 'site');
+
+function generateHTML(charts: ReturnType<typeof generateChartSpecs>): string {
+  const chartsJSON = charts.map((c) => JSON.stringify(toVegaLiteSpec(c)));
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend Framework Benchmark Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; background: #0f172a; color: #f1f5f9; margin: 0; padding: 24px; }
+    h1 { text-align: center; margin-bottom: 32px; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; max-width: 1400px; margin: 0 auto; }
+    .chart-card { background: #1e293b; border-radius: 8px; padding: 16px; }
+    .vega-embed { width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Frontend Framework Benchmark Results</h1>
+  <div class="charts">
+    ${charts.map((_, i) => `<div class="chart-card" id="chart-${i}"></div>`).join('\n    ')}
+  </div>
+  <script>
+    const specs = [${chartsJSON.join(',\n      ')}];
+    specs.forEach((spec, i) => {
+      vegaEmbed('#chart-' + i, spec, { theme: 'dark', actions: false });
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function main() {
+  const resultsPath = join(process.cwd(), RESULTS_PATH);
+
+  if (!existsSync(resultsPath)) {
+    console.log('No results found. Run benchmarks first.');
+    process.exit(0);
+  }
+
+  const charts = generateChartSpecs(resultsPath);
+  const html = generateHTML(charts);
+
+  const outputDir = join(process.cwd(), OUTPUT_DIR);
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+  }
+
+  writeFileSync(join(outputDir, 'index.html'), html);
+  console.log(`Site generated at ${outputDir}/index.html`);
+
+  // Also generate markdown table
+  const table = generateMarkdownTable(resultsPath);
+  console.log('\nMarkdown Table:\n');
+  console.log(table);
+}
+
+main();

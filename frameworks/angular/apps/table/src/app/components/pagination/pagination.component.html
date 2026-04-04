@@ -1,0 +1,17 @@
+<div class="pagination">
+  <button (click)="goToFirst()" [disabled]="currentPage() <= 1">First</button>
+  <button (click)="goToPrev()" [disabled]="currentPage() <= 1">Prev</button>
+  <span class="page-info">
+    Page
+    <input
+      type="number"
+      [value]="currentPage()"
+      (change)="onPageInput($event)"
+      [min]="1"
+      [max]="totalPages()"
+    />
+    of {{ totalPages() }}
+  </span>
+  <button (click)="goToNext()" [disabled]="currentPage() >= totalPages()">Next</button>
+  <button (click)="goToLast()" [disabled]="currentPage() >= totalPages()">Last</button>
+</div>

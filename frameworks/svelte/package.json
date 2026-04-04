@@ -1,0 +1,30 @@
+{
+  "name": "framework-svelte",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:table": "vite serve apps/table",
+    "dev:nested-tree": "vite serve apps/nested-tree",
+    "dev:dashboard": "vite serve apps/dashboard",
+    "dev:form": "vite serve apps/form",
+    "dev:router": "vite serve apps/router",
+    "build:table": "vite build apps/table --outDir ../../dist/table",
+    "build:nested-tree": "vite build apps/nested-tree --outDir ../../dist/nested-tree",
+    "build:dashboard": "vite build apps/dashboard --outDir ../../dist/dashboard",
+    "build:form": "vite build apps/form --outDir ../../dist/form",
+    "build:router": "vite build apps/router --outDir ../../dist/router",
+    "build": "pnpm run build:table && pnpm run build:nested-tree && pnpm run build:dashboard && pnpm run build:form && pnpm run build:router"
+  },
+  "dependencies": {
+    "svelte": "^5.20.0",
+    "svelte-routing": "^2.13.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "shared-data": "workspace:*",
+    "shared-css": "workspace:*"
+  }
+}

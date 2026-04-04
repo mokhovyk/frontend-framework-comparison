@@ -1,0 +1,51 @@
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        @for (col of columns; track col.key) {
+          <th (click)="onHeaderClick(col.key)">
+            {{ col.label }}
+            <span
+              class="sort-indicator"
+              [class.active]="isSortActive(col.key)"
+            >{{ getSortIndicator(col.key) }}</span>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr
+          [class.selected]="isSelected(row.id)"
+          (click)="onRowClick(row, $event)"
+        >
+          @for (col of columns; track col.key) {
+            @if (isEditing(row.id, col.key)) {
+              <td class="editing">
+                <input
+                  type="text"
+                  [value]="row[col.key]"
+                  (keydown)="onEditKeydown($event, row.id, col.key)"
+                  (blur)="cancelEdit.emit()"
+                  autofocus
+                />
+              </td>
+            } @else {
+              <td (dblclick)="onCellDblClick(row.id, col.key)">
+                @if (col.key === 'isActive') {
+                  <span
+                    class="active-badge"
+                    [class.active]="row.isActive"
+                    [class.inactive]="!row.isActive"
+                  >{{ row.isActive ? 'Active' : 'Inactive' }}</span>
+                } @else {
+                  {{ formatCell(row, col.key) }}
+                }
+              </td>
+            }
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

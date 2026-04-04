@@ -1,0 +1,21 @@
+<div class="nested-tree" [attr.data-theme]="theme()">
+  <h1>Angular - Nested Component Tree</h1>
+
+  <div class="toolbar">
+    <button (click)="toggleTheme()">
+      Toggle Theme ({{ theme() }})
+    </button>
+    <button (click)="increment()">
+      Increment Counter ({{ counter() }})
+    </button>
+    <button class="secondary" (click)="toggleWideMode()">
+      {{ wideMode() ? 'Normal Mode' : 'Wide Mode' }}
+    </button>
+  </div>
+
+  <app-level
+    [depth]="1"
+    [maxDepth]="effectiveMaxDepth"
+    [wideMode]="wideMode()"
+  ></app-level>
+</div>

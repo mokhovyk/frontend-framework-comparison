@@ -1,0 +1,23 @@
+{
+  "name": "shared-data",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./generators/*": "./dist/generators/*.js",
+    "./mock-api": "./dist/mock-api.js",
+    "./mock-ws": "./dist/mock-ws.js",
+    "./canvas-charts": "./dist/canvas-charts.js",
+    "./types": "./dist/types.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

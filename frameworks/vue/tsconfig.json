@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "baseUrl": ".",
+    "paths": {
+      "shared-data": ["../../packages/shared-data/src/index.ts"],
+      "shared-data/*": ["../../packages/shared-data/src/*.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": [
+    "env.d.ts",
+    "apps/**/*.ts",
+    "apps/**/*.vue"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

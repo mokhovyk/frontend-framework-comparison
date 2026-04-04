@@ -1,0 +1,48 @@
+<div style="padding: 16px;">
+  <h1>Angular - CRUD Data Table</h1>
+
+  <div class="toolbar">
+    <input
+      type="text"
+      placeholder="Filter rows..."
+      [value]="filterText()"
+      (input)="onFilterChange($any($event.target).value)"
+    />
+    <button
+      class="danger"
+      [disabled]="selectedCount() === 0"
+      (click)="onDeleteSelected()"
+    >
+      Delete Selected ({{ selectedCount() }})
+    </button>
+    <button
+      class="secondary"
+      [disabled]="selectedCount() === 0"
+      (click)="onToggleActive()"
+    >
+      Toggle Active
+    </button>
+    <span style="margin-left: auto; color: var(--color-text-secondary); font-size: 13px;">
+      {{ sortedRows().length }} rows
+    </span>
+  </div>
+
+  <app-data-table
+    [rows]="paginatedRows()"
+    [sortColumn]="sortState().column"
+    [sortDirection]="sortState().direction"
+    [selectedIds]="selectedIds()"
+    [editingCell]="editingCell()"
+    (sort)="onSort($event)"
+    (rowClick)="onRowClick($event.row, $event.event)"
+    (startEdit)="onStartEdit($event.rowId, $event.column)"
+    (commitEdit)="onCommitEdit($event.rowId, $event.column, $event.value)"
+    (cancelEdit)="onCancelEdit()"
+  ></app-data-table>
+
+  <app-pagination
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    (pageChange)="onPageChange($event)"
+  ></app-pagination>
+</div>

@@ -1,0 +1,33 @@
+<div
+  class="level"
+  [attr.data-level]="depth()"
+  [attr.data-theme]="theme()"
+  [attr.data-bench-leaf]="isLeaf ? 'true' : null"
+>
+  <div class="level-header">
+    @if (!isLeaf) {
+      <button class="toggle-btn secondary" (click)="toggle()">
+        {{ expanded() ? '\u25BC' : '\u25B6' }}
+      </button>
+    }
+    <span class="level-info">
+      Level {{ depth() }} | Theme: {{ theme() }} | Counter: {{ counter() }}
+    </span>
+  </div>
+
+  @if (isLeaf) {
+    <div class="leaf-timestamp" data-bench-leaf="true">
+      Leaf timestamp: {{ timestamp }}
+    </div>
+  }
+
+  @if (!isLeaf && expanded()) {
+    @for (child of children; track child) {
+      <app-level
+        [depth]="depth() + 1"
+        [maxDepth]="maxDepth()"
+        [wideMode]="wideMode()"
+      ></app-level>
+    }
+  }
+</div>

@@ -1,0 +1,39 @@
+{
+  "name": "react-benchmarks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:table": "APP=table vite",
+    "dev:nested-tree": "APP=nested-tree vite",
+    "dev:dashboard": "APP=dashboard vite",
+    "dev:form": "APP=form vite",
+    "dev:router": "APP=router vite",
+    "build:table": "APP=table vite build",
+    "build:nested-tree": "APP=nested-tree vite build",
+    "build:dashboard": "APP=dashboard vite build",
+    "build:form": "APP=form vite build",
+    "build:router": "APP=router vite build",
+    "build:all": "pnpm build:table && pnpm build:nested-tree && pnpm build:dashboard && pnpm build:form && pnpm build:router",
+    "preview:table": "APP=table vite preview",
+    "preview:nested-tree": "APP=nested-tree vite preview",
+    "preview:dashboard": "APP=dashboard vite preview",
+    "preview:form": "APP=form vite preview",
+    "preview:router": "APP=router vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.0.0",
+    "react-router-dom": "^7.0.0",
+    "shared-data": "workspace:*",
+    "shared-css": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}

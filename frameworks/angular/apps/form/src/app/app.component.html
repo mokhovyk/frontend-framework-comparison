@@ -1,0 +1,73 @@
+<div class="form-container">
+  <h1 class="form-title">Angular - Dynamic Form</h1>
+
+  @if (submitted() && allErrors.length > 0) {
+    <app-error-summary
+      [errors]="allErrors"
+    ></app-error-summary>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- Schema Fields -->
+    @for (field of schema.fields; track field.name) {
+      @if (isFieldVisible(field)) {
+        <app-form-field
+          [field]="field"
+          [control]="$any(form.get(field.name))"
+          [showErrors]="submitted()"
+        ></app-form-field>
+      }
+    }
+
+    <!-- Repeatable Groups Section -->
+    <div class="repeatable-section">
+      <h3>{{ schema.repeatableGroup.label }} ({{ repeatableGroups.length }} / {{ schema.repeatableGroup.maxCount }})</h3>
+
+      @for (group of repeatableGroups.controls; track $index; let i = $index) {
+        <app-repeatable-group
+          [group]="$any(group)"
+          [index]="i"
+          [fields]="schema.repeatableGroup.fields"
+          [showErrors]="submitted()"
+          (remove)="removeRepeatableGroup(i)"
+        ></app-repeatable-group>
+      }
+
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="repeatableGroups.length >= schema.repeatableGroup.maxCount"
+        (click)="addRepeatableGroup()"
+      >
+        + Add {{ schema.repeatableGroup.label }}
+      </button>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="submit">Submit</button>
+      <button type="button" class="secondary" (click)="onReset()">Reset</button>
+      <button type="button" class="secondary" (click)="stressTest()">Stress Test</button>
+    </div>
+  </form>
+
+  @if (stressTestResult(); as result) {
+    <div class="submit-result">
+      <h3>Stress Test Results</h3>
+      <pre>Add 50 groups: {{ result.addTime }}ms
+Remove one-by-one: {{ result.removeTime }}ms
+Total: {{ result.totalTime }}ms</pre>
+    </div>
+  }
+
+  @if (submitResult(); as result) {
+    <div class="submit-result">
+      <h3>Submitted Data</h3>
+      <pre>{{ result }}</pre>
+    </div>
+  }
+
+  @if (showDebug()) {
+    <app-debug-panel [data]="formValues"></app-debug-panel>
+  }
+</div>
