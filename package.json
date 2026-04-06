@@ -8,6 +8,7 @@
     "node": ">=22",
     "pnpm": ">=9"
   },
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build:all": "bash scripts/build-all.sh",
     "benchmark": "bash scripts/benchmark.sh",

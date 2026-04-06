@@ -44,7 +44,7 @@ export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserCon
     await new Promise((r) => setTimeout(r, 1000));
     await forceGC();
 
-    const result = await cdp.send('Runtime.getHeapUsage' as string);
+    const result = await cdp.send('Runtime.getHeapUsage' as any);
     return (result as unknown as { usedSize: number }).usedSize;
   }
 
