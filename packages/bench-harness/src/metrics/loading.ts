@@ -81,7 +81,7 @@ export async function measureLoading(
     });
 
     // TBT: sum of long tasks > 50ms between FCP and TTI
-    const tbt = await page.evaluate((fcp: number, ttiVal: number) => {
+    const tbt = await page.evaluate(([fcp, ttiVal]: [number, number]) => {
       const entries = performance.getEntriesByType('longtask') as PerformanceEntry[];
       let total = 0;
       for (const entry of entries) {
@@ -91,7 +91,7 @@ export async function measureLoading(
         }
       }
       return total;
-    }, paintTimings.fcp, tti);
+    }, [paintTimings.fcp, tti] as [number, number]);
 
     fcpRuns.push(paintTimings.fcp);
     lcpRuns.push(paintTimings.lcp);
