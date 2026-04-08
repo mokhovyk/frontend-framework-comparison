@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "timestamp": "2026-04-08T18:50:42.187Z",
+    "commit": "unknown",
+    "dockerImage": "local",
+    "chromeVersion": "Chromium 146.0.7680.177 built on Debian GNU/Linux 12 (bookworm)",
+    "nodeVersion": "v22.22.2",
+    "frameworks": {
+      "react": "19.x",
+      "angular": "19.x",
+      "vue": "3.5.x",
+      "svelte": "5.x"
+    }
+  },
+  "results": {
+    "react": {},
+    "angular": {},
+    "vue": {},
+    "svelte": {
+      "B5_prod_build": {
+        "median": 8216.6112425,
+        "mean": 8231.4742716,
+        "stddev": 155.84037712177533,
+        "p5": 8051.2607731,
+        "p95": 8438.65505455,
+        "min": 8024.167417,
+        "max": 8459.135347,
+        "ci95_lower": 8104.159557,
+        "ci95_upper": 8371.056338,
+        "cv": 0.018932255872979083,
+        "unit": "ms",
+        "runs": [
+          8459.135347,
+          8413.623586,
+          8294.980954,
+          8371.056338,
+          8312.040858,
+          8112.962253,
+          8104.159557,
+          8084.374875,
+          8024.167417,
+          8138.241531
+        ]
+      }
+    }
+  }
+}
