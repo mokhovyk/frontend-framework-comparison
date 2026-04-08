@@ -66,6 +66,9 @@ jobs:
           path: results/latest.json
           overwrite: true
 
+      - name: Fix results directory permissions
+        run: sudo chown -R $(id -u):$(id -g) results
+
       - name: Generate report
         run: |
           pnpm --filter results-site build
