@@ -21,18 +21,14 @@ export async function measureBuildTime(
   for (let i = 0; i < buildRuns; i++) {
     // Clear caches
     try {
-      execSync('rm -rf node_modules/.cache dist .angular/cache .svelte-kit .vite', {
+      execSync(`rm -rf node_modules/.cache dist/${app} .angular/cache .svelte-kit .vite`, {
         cwd,
         stdio: 'ignore',
       });
     } catch { /* ok if dirs don't exist */ }
 
     const start = process.hrtime.bigint();
-    try {
-      execSync(`pnpm build --filter ./${app}`, { cwd, stdio: 'ignore' });
-    } catch {
-      execSync('pnpm build', { cwd, stdio: 'ignore' });
-    }
+    execSync(`pnpm run build:${app}`, { cwd, stdio: 'ignore' });
     const end = process.hrtime.bigint();
     prodRuns.push(Number(end - start) / 1e6); // ns → ms
   }

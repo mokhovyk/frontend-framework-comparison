@@ -66,7 +66,7 @@ async function runBenchmarkSuite(config: BenchmarkConfig): Promise<FullBenchmark
         console.log(`  App: ${app} (${url})`);
 
         // Bundle metrics (no browser needed)
-        const buildDir = join('frameworks', framework, 'apps', app, 'dist');
+        const buildDir = join('frameworks', framework, 'dist', app);
         try {
           const bundleMetrics = await measureBundle(buildDir);
           Object.assign(results.results[framework], bundleMetrics);
