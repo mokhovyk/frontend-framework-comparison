@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getContext } from 'svelte';
+  import Level from './Level.svelte';
 
   interface Props {
     depth: number;
@@ -59,7 +60,7 @@
     </div>
   {:else if expanded}
     {#each children as idx (idx)}
-      <svelte:self depth={depth + 1} {maxDepth} {wideMode} />
+      <Level depth={depth + 1} {maxDepth} {wideMode} />
     {/each}
   {/if}
 </div>

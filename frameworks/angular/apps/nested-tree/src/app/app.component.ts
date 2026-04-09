@@ -3,18 +3,6 @@ import { LevelComponent } from './components/level/level.component';
 import { ThemeService } from './components/level/theme.service';
 import { CounterService } from './components/level/counter.service';
 
-declare global {
-  interface Window {
-    __benchmark?: {
-      toggleTheme: () => void;
-      increment: () => void;
-      getCounter: () => number;
-      getTheme: () => string;
-      toggleWideMode: () => void;
-    };
-  }
-}
-
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -25,6 +13,8 @@ declare global {
 export class AppComponent implements OnInit {
   readonly wideMode = signal(false);
   readonly maxDepth = 50;
+  readonly lifecycleCount = signal(0);
+  readonly lifecycleItems = (): number[] => Array.from({ length: this.lifecycleCount() }, (_, i) => i);
 
   constructor(
     private themeService: ThemeService,
@@ -61,11 +51,11 @@ export class AppComponent implements OnInit {
 
   private exposeBenchmarkHooks(): void {
     const self = this;
-    window.__benchmark = {
+    (window as unknown as Record<string, unknown>)['__benchmark'] = {
       toggleTheme() {
         self.toggleTheme();
       },
-      increment() {
+      incrementCounter() {
         self.increment();
       },
       getCounter() {
@@ -76,6 +66,12 @@ export class AppComponent implements OnInit {
       },
       toggleWideMode() {
         self.toggleWideMode();
+      },
+      mountComponents(n: number) {
+        self.lifecycleCount.set(n);
+      },
+      unmountComponents() {
+        self.lifecycleCount.set(0);
       },
     };
   }

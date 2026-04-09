@@ -13,6 +13,7 @@ export default defineConfig({
   },
   resolve: {
     dedupe: ['svelte'],
+    conditions: ['browser'],
     alias: {
       'shared-data': resolve(__dirname, '../../packages/shared-data/src'),
       'shared-css': resolve(__dirname, '../../packages/shared-css'),
