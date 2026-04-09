@@ -61,10 +61,28 @@ export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserCon
  * Navigate to an app and wait for it to be ready.
  */
 export async function navigateToApp(ctx: BrowserContext, url: string): Promise<void> {
-  await ctx.page.goto(url, { waitUntil: 'networkidle' });
-  // Wait for the benchmark hooks to be available
-  await ctx.page.waitForFunction(
-    () => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined',
-    { timeout: 10000 }
-  );
+  const pageErrors: string[] = [];
+  const onError = (err: Error) => {
+    pageErrors.push(err.message);
+    console.warn(`    [page error] ${err.message}`);
+  };
+  ctx.page.on('pageerror', onError);
+
+  try {
+    await ctx.page.goto(url, { waitUntil: 'networkidle' });
+    await ctx.page.waitForFunction(
+      () => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined',
+      undefined,
+      { timeout: 10000 }
+    );
+  } catch (err) {
+    if (pageErrors.length > 0) {
+      throw new Error(
+        `${(err as Error).message} — page errors: ${pageErrors.join('; ')}`
+      );
+    }
+    throw err;
+  } finally {
+    ctx.page.off('pageerror', onError);
+  }
 }

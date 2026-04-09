@@ -12,6 +12,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [counter, setCounter] = useState(0);
   const [wideMode, setWideMode] = useState(false);
+  const [lifecycleCount, setLifecycleCount] = useState(0);
 
   const maxDepth = wideMode ? MAX_DEPTH_WIDE : MAX_DEPTH_NORMAL;
   const childrenPerLevel = wideMode ? CHILDREN_PER_LEVEL_WIDE : 1;
@@ -26,6 +27,8 @@ export default function App() {
       incrementCounter: () => setCounter((c) => c + 1),
       toggleTheme: () => setTheme((t) => (t === 'light' ? 'dark' : 'light')),
       toggleWideMode: () => setWideMode((w) => !w),
+      mountComponents: (n: number) => setLifecycleCount(n),
+      unmountComponents: () => setLifecycleCount(0),
     };
     (window as unknown as Record<string, unknown>).__benchmark = hooks;
     return () => {
@@ -64,6 +67,11 @@ export default function App() {
               maxDepth={maxDepth}
               childrenPerLevel={childrenPerLevel}
             />
+          </div>
+          <div id="lifecycle-container">
+            {Array.from({ length: lifecycleCount }, (_, i) => (
+              <Level key={i} depth={1} maxDepth={3} childrenPerLevel={1} />
+            ))}
           </div>
         </div>
       </CounterContext.Provider>

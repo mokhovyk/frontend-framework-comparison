@@ -1,6 +1,6 @@
 # Frontend Framework Benchmark Suite — Specification
 
-> **Frameworks under test:** React 19, Angular 19, Vue 3.5, Svelte 5
+> **Frameworks under test:** React 19, Angular 19, Vue 3.5
 > **Last updated:** 2026-04-03
 
 ---
@@ -21,7 +21,7 @@
 
 Produce a benchmark suite that:
 
-- Measures **real-world performance** across four major frontend frameworks under identical, controlled conditions.
+- Measures **real-world performance** across three major frontend frameworks under identical, controlled conditions.
 - Yields results that are **statistically sound** (low variance, high confidence).
 - Is **fully reproducible** — any developer can clone the repo, run one command, and get equivalent results.
 - Is **auditable** — every methodological decision is documented and justified.
@@ -114,7 +114,6 @@ Produce a benchmark suite that:
   - React: `useState` / `useReducer` + Context, no external libraries.
   - Angular: Signals + RxJS where idiomatic.
   - Vue: `ref` / `reactive` + `computed`.
-  - Svelte: `$state` / `$derived` runes.
 
 ### 2.6 Component Lifecycle Throughput
 
@@ -168,7 +167,7 @@ Every framework must implement each of the following five applications with **ex
 | Theme | A `theme` value (`"light"` or `"dark"`) stored at the root. A toggle button at root flips it. Every `<Level>` component reads the theme and applies a CSS class. |
 | Counter | An integer counter stored at the root. An "Increment" button at root increments it. Every `<Level>` displays the counter value. |
 | Local state per level | Each `<Level>` has a boolean `expanded` state (default `true`). A collapse toggle hides its child subtree. |
-| Propagation mechanism | Use each framework's **idiomatic** approach: React Context, Angular Signals/DI, Vue provide/inject, Svelte context + runes. No external state libraries. |
+| Propagation mechanism | Use each framework's **idiomatic** approach: React Context, Angular Signals/DI, Vue provide/inject. No external state libraries. |
 | Leaf component | The innermost `<Level>` (depth 50) renders a timestamp of the last update via `performance.now()`, used to measure propagation time. |
 | Stress variant | A "Wide mode" toggle changes the tree so each `<Level>` renders **3 children** instead of 1, producing 3^10 = 59,049 leaf nodes at depth 10 (capped version for memory safety). |
 
@@ -215,7 +214,7 @@ Every framework must implement each of the following five applications with **ex
 
 | Feature | Detail |
 |---------|--------|
-| Router | Each framework's standard router: React Router, Angular Router, Vue Router, SvelteKit-style file router (or svelte-routing). |
+| Router | Each framework's standard router: React Router, Angular Router, Vue Router. |
 | Pages | 10 pages, each lazy-loaded as a separate chunk: Home, Dashboard (reuse App C in simplified form — 4 widgets), Table (reuse App A with 1,000 rows), Form (reuse App D), Profile, Settings, Notifications (list of 500 items), Search (with 200ms debounced API mock), About, 404. |
 | Navigation | A sidebar with links to all 10 pages. Active page highlighted. |
 | Transitions | Page transitions use CSS-only fade (opacity 0→1 over 200ms). No JS animation libraries. |
@@ -315,7 +314,6 @@ RUN apt-get update && apt-get install -y \
 | React | 19.x (latest stable) | Vite 6 + `@vitejs/plugin-react` | `react-dom/server` + manual hydration |
 | Angular | 19.x (latest stable) | Angular CLI 19 (`@angular/cli`) | `@angular/ssr` |
 | Vue | 3.5.x (latest stable) | Vite 6 + `@vitejs/plugin-vue` | `@vue/server-renderer` + `createSSRApp` |
-| Svelte | 5.x (latest stable) | Vite 6 + `@sveltejs/vite-plugin-svelte` | SvelteKit (for SSR hydration benchmark only) |
 
 ### 5.2 Configuration Rules
 
@@ -326,7 +324,6 @@ RUN apt-get update && apt-get install -y \
    - No custom Babel/SWC plugins.
    - No `React.memo`, `useMemo`, `useCallback` unless the idiomatic pattern for that specific component clearly calls for it (documented and reviewed).
    - No Angular `OnPush` unless the component is naturally event-driven (documented and reviewed).
-   - No Svelte `{#key}` blocks used purely for benchmark gaming.
    - No Vue `v-once`, `v-memo` unless genuinely idiomatic.
 3. **TypeScript** for all implementations. Strict mode enabled.
 4. **Shared dependencies** (identical versions): the mock data generator, mock API, mock WebSocket, form schema, CSS, and chart canvas renderer.
@@ -358,7 +355,6 @@ Every benchmark run produces a JSON file:
       "react": "19.1.0",
       "angular": "19.2.0",
       "vue": "3.5.13",
-      "svelte": "5.20.0"
     }
   },
   "results": {
@@ -390,7 +386,7 @@ Every benchmark run produces a JSON file:
 3. **SQLite → Markdown**: Auto-generate a comparison table for the README:
 
 ```markdown
-| Metric | React | Angular | Vue | Svelte |
+| Metric | React | Angular | Vue |
 |--------|-------|---------|-----|--------|
 | Bundle (gzip) | 42.1 KB | 65.3 KB | 35.2 KB | 18.7 KB |
 | Create 1k rows | 45.2 ms | 52.1 ms | 38.7 ms | 32.1 ms |
@@ -432,7 +428,7 @@ This checklist must be reviewed on every PR that modifies a framework implementa
 
 ### Code Review Checklist
 
-- [ ] **Feature parity**: All Playwright parity tests pass across all four frameworks.
+- [ ] **Feature parity**: All Playwright parity tests pass across all three frameworks.
 - [ ] **No optimization bias**: No framework uses manual optimization that others don't (e.g., `React.memo` without equivalent `OnPush` in Angular, etc.). Any optimization used is documented and justified as idiomatic.
 - [ ] **Identical data**: All frameworks use the same seeded data generators with the same seed.
 - [ ] **Identical CSS**: All frameworks import from `packages/shared-css`. No framework-specific style overrides that could affect rendering performance (e.g., `contain: strict`).

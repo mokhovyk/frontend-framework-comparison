@@ -11,9 +11,10 @@ export async function measureLoading(
   config: BenchmarkConfig,
 ): Promise<Record<string, BenchmarkResult>> {
   const results: Record<string, BenchmarkResult> = {};
-  const runs = config.reduced ? 10 : 21;
+  const measured = config.reduced ? 10 : 21;
+  const warmup = config.warmup;
+  const totalRuns = warmup + measured;
 
-  // Use Playwright's built-in performance metrics as Lighthouse CI wrapper
   const { chromium } = await import('playwright');
 
   const fcpRuns: number[] = [];
@@ -21,88 +22,132 @@ export async function measureLoading(
   const ttiRuns: number[] = [];
   const tbtRuns: number[] = [];
 
-  for (let i = 0; i < runs; i++) {
+  for (let i = 0; i < totalRuns; i++) {
+    // Let the container settle between runs to reduce variance from
+    // resource contention (especially on the first few measured runs).
+    if (i > 0) await new Promise((r) => setTimeout(r, config.delayBetweenOps));
+
     const browser = await chromium.launch({
       executablePath: config.chromePath,
       args: config.chromeFlags,
     });
 
-    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
-    const page = await context.newPage();
-    const cdp = await context.newCDPSession(page);
+    try {
+      const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+      const page = await context.newPage();
+      const cdp = await context.newCDPSession(page);
 
-    // Enable performance tracing
-    await cdp.send('Performance.enable');
+      await cdp.send('Performance.enable');
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
-    // Apply CPU throttling (4x slowdown)
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
 
-    await page.goto(url, { waitUntil: 'networkidle' });
+      const paintTimings = await page.evaluate(() => {
+        return new Promise<{ fcp: number; lcp: number }>((resolve) => {
+          let fcp = 0;
+          let lcp = 0;
+          let paintSettled = false;
+          let lcpSettled = false;
+          let resolved = false;
 
-    // Collect paint timing
-    const paintTimings = await page.evaluate(() => {
-      return new Promise<{ fcp: number; lcp: number }>((resolve) => {
-        const entries = performance.getEntriesByType('paint');
-        const fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
+          const tryResolve = () => {
+            if (resolved || !paintSettled || !lcpSettled) return;
+            resolved = true;
+            resolve({ fcp, lcp: lcp || fcp });
+          };
 
-        // Use PerformanceObserver for LCP
-        new PerformanceObserver((list) => {
-          const lcpEntries = list.getEntries();
-          const lcp = lcpEntries[lcpEntries.length - 1]?.startTime ?? fcp;
-          resolve({ fcp, lcp });
-        }).observe({ type: 'largest-contentful-paint', buffered: true });
-
-        // Fallback if no LCP
-        setTimeout(() => resolve({ fcp, lcp: fcp }), 5000);
-      });
-    });
-
-    // TTI approximation: time until main thread idle for 5s
-    const tti = await page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        let lastBusyTime = performance.now();
-        const check = () => {
-          if (performance.now() - lastBusyTime > 5000) {
-            resolve(lastBusyTime);
-          } else {
-            requestAnimationFrame(check);
+          try {
+            new PerformanceObserver((list) => {
+              for (const entry of list.getEntries()) {
+                if (entry.name === 'first-contentful-paint') {
+                  fcp = entry.startTime;
+                }
+              }
+              paintSettled = true;
+              tryResolve();
+            }).observe({ type: 'paint', buffered: true });
+          } catch {
+            const entries = performance.getEntriesByType('paint');
+            fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
+            paintSettled = true;
           }
-        };
 
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            lastBusyTime = entry.startTime + entry.duration;
+          try {
+            new PerformanceObserver((list) => {
+              const entries = list.getEntries();
+              lcp = entries[entries.length - 1]?.startTime ?? 0;
+              lcpSettled = true;
+              tryResolve();
+            }).observe({ type: 'largest-contentful-paint', buffered: true });
+          } catch {
+            lcpSettled = true;
           }
-        }).observe({ type: 'longtask', buffered: true });
 
-        setTimeout(check, 100);
-        setTimeout(() => resolve(performance.now()), 10000); // 10s timeout
+          setTimeout(() => {
+            paintSettled = true;
+            lcpSettled = true;
+            tryResolve();
+          }, 5000);
+        });
       });
-    });
 
-    // TBT: sum of long tasks > 50ms between FCP and TTI
-    const tbt = await page.evaluate(([fcp, ttiVal]: [number, number]) => {
-      const entries = performance.getEntriesByType('longtask') as PerformanceEntry[];
-      let total = 0;
-      for (const entry of entries) {
-        if (entry.startTime >= fcp && entry.startTime <= ttiVal) {
-          const blocking = entry.duration - 50;
-          if (blocking > 0) total += blocking;
+      const tti = await page.evaluate(() => {
+        return new Promise<number>((resolve) => {
+          let lastBusyTime = performance.now();
+          const check = () => {
+            if (performance.now() - lastBusyTime > 5000) {
+              resolve(lastBusyTime);
+            } else {
+              requestAnimationFrame(check);
+            }
+          };
+
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              lastBusyTime = entry.startTime + entry.duration;
+            }
+          }).observe({ type: 'longtask', buffered: true });
+
+          setTimeout(check, 100);
+          setTimeout(() => resolve(performance.now()), 10000);
+        });
+      });
+
+      const tbt = await page.evaluate(([fcp, ttiVal]: [number, number]) => {
+        const entries = performance.getEntriesByType('longtask') as PerformanceEntry[];
+        let total = 0;
+        for (const entry of entries) {
+          if (entry.startTime >= fcp && entry.startTime <= ttiVal) {
+            const blocking = entry.duration - 50;
+            if (blocking > 0) total += blocking;
+          }
         }
+        return total;
+      }, [paintTimings.fcp, tti] as [number, number]);
+
+      if (i >= warmup) {
+        fcpRuns.push(paintTimings.fcp);
+        lcpRuns.push(paintTimings.lcp);
+        ttiRuns.push(tti);
+        tbtRuns.push(tbt);
       }
-      return total;
-    }, [paintTimings.fcp, tti] as [number, number]);
-
-    fcpRuns.push(paintTimings.fcp);
-    lcpRuns.push(paintTimings.lcp);
-    ttiRuns.push(tti);
-    tbtRuns.push(tbt);
-
-    await browser.close();
+    } finally {
+      await browser.close();
+    }
   }
 
-  results['L1_fcp'] = statToResult(computeStats(fcpRuns), 'ms');
-  results['L2_lcp'] = statToResult(computeStats(lcpRuns), 'ms');
+  const validFcp = fcpRuns.filter((v) => v > 0);
+  const validLcp = lcpRuns.filter((v) => v > 0);
+
+  if (validFcp.length < fcpRuns.length) {
+    console.warn(`    L1_fcp: dropped ${fcpRuns.length - validFcp.length}/${fcpRuns.length} zero-valued runs (paint entry missing)`);
+  }
+  if (validLcp.length < lcpRuns.length) {
+    console.warn(`    L2_lcp: dropped ${lcpRuns.length - validLcp.length}/${lcpRuns.length} zero-valued runs (paint entry missing)`);
+  }
+
+  if (validFcp.length > 0) results['L1_fcp'] = statToResult(computeStats(validFcp), 'ms');
+  if (validLcp.length > 0) results['L2_lcp'] = statToResult(computeStats(validLcp), 'ms');
   results['L3_tti'] = statToResult(computeStats(ttiRuns), 'ms');
   results['L4_tbt'] = statToResult(computeStats(tbtRuns), 'ms');
 

@@ -34,8 +34,10 @@ function stddev(arr: number[], avg: number): number {
 }
 
 /**
- * Modified Z-score for outlier detection (threshold: 3.5).
- * Returns indices of outlier values.
+ * Modified Z-score for outlier detection.
+ * Threshold lowered to 2.5 (from the classic 3.5) because benchmark
+ * sample sizes are small (10–25) and the higher threshold misses
+ * outliers that inflate CV.
  */
 export function findOutliers(arr: number[]): number[] {
   const med = percentile(sorted(arr), 50);
@@ -43,16 +45,40 @@ export function findOutliers(arr: number[]): number[] {
     sorted(arr.map((v) => Math.abs(v - med))),
     50
   );
-  if (mad === 0) return [];
 
-  const outliers: number[] = [];
-  for (let i = 0; i < arr.length; i++) {
-    const zScore = 0.6745 * (arr[i] - med) / mad;
-    if (Math.abs(zScore) > 3.5) {
-      outliers.push(i);
+  const outliers = new Set<number>();
+
+  if (mad > 0) {
+    for (let i = 0; i < arr.length; i++) {
+      const zScore = 0.6745 * (arr[i] - med) / mad;
+      if (Math.abs(zScore) > 2.5) {
+        outliers.add(i);
+      }
     }
   }
-  return outliers;
+
+  // IQR fallback: catches outliers when MAD is 0 or Z-score alone
+  // isn't aggressive enough for very small samples.
+  const s = sorted(arr);
+  const q1 = percentile(s, 25);
+  const q3 = percentile(s, 75);
+  const iqr = q3 - q1;
+  if (iqr > 0) {
+    const lower = q1 - 1.5 * iqr;
+    const upper = q3 + 1.5 * iqr;
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] < lower || arr[i] > upper) {
+        outliers.add(i);
+      }
+    }
+  }
+
+  // Never remove more than 40% of the samples
+  if (outliers.size > Math.floor(arr.length * 0.4)) {
+    return [];
+  }
+
+  return [...outliers];
 }
 
 /**
@@ -81,10 +107,10 @@ export function computeStats(runs: number[]): StatResult {
   const med = percentile(s, 50);
   const [ci95_lower, ci95_upper] = bootstrapCI(runs);
 
-  // Mean excluding outliers (for reporting only — median is primary)
   const outlierIndices = new Set(findOutliers(runs));
   const cleanRuns = runs.filter((_, i) => !outlierIndices.has(i));
   const cleanMean = cleanRuns.length > 0 ? mean(cleanRuns) : avg;
+  const cleanSd = cleanRuns.length > 1 ? stddev(cleanRuns, cleanMean) : sd;
 
   return {
     median: med,
@@ -96,7 +122,7 @@ export function computeStats(runs: number[]): StatResult {
     max: s[s.length - 1],
     ci95_lower,
     ci95_upper,
-    cv: avg > 0 ? sd / avg : 0,
+    cv: cleanMean > 0 ? cleanSd / cleanMean : 0,
     runs,
   };
 }

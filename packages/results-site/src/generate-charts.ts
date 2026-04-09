@@ -75,8 +75,8 @@ export function toVegaLiteSpec(chart: ChartSpec): object {
         field: 'framework',
         type: 'nominal',
         scale: {
-          domain: ['react', 'angular', 'vue', 'svelte'],
-          range: ['#61dafb', '#dd0031', '#42b883', '#ff3e00'],
+          domain: ['react', 'angular', 'vue'],
+          range: ['#61dafb', '#dd0031', '#42b883'],
         },
       },
     },

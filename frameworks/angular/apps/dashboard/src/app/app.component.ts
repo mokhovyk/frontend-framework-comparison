@@ -130,10 +130,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.statusCells.set(cells);
   }
 
-  async runBenchmark(): Promise<void> {
+  async runBenchmark(): Promise<DashboardBenchmarkResult> {
     this.benchmarkResult.set(null);
 
-    // Stop if already running
     if (this.isRunning()) {
       this.stop();
     }
@@ -155,7 +154,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
     rafId = requestAnimationFrame(countFrames);
 
-    // Start the dashboard
     this.ws = createMockWebSocket(42);
     this.ws.connect((batch: DashboardBatch) => this.handleBatch(batch));
     this.ws.setRate(targetRate);
@@ -183,13 +181,16 @@ export class AppComponent implements OnInit, OnDestroy {
     const p99Index = Math.floor(frameTimes.length * 0.99);
     const p99FrameTime = frameTimes.length > 0 ? frameTimes[p99Index] : 0;
 
-    this.benchmarkResult.set({
+    const result: DashboardBenchmarkResult = {
       framesRendered,
       droppedFrames,
       avgFrameTime: Math.round(avgFrameTime * 100) / 100,
       p99FrameTime: Math.round(p99FrameTime * 100) / 100,
       duration: Math.round(elapsed),
-    });
+    };
+
+    this.benchmarkResult.set(result);
+    return result;
   }
 
   private exposeBenchmarkHooks(): void {

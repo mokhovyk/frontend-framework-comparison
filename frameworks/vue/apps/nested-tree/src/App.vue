@@ -5,6 +5,7 @@ import Level from './components/Level.vue';
 const theme = ref<'light' | 'dark'>('dark');
 const counter = ref(0);
 const wideMode = ref(false);
+const lifecycleCount = ref(0);
 
 provide('theme', theme);
 provide('counter', counter);
@@ -31,7 +32,7 @@ onMounted(() => {
     toggleTheme() {
       toggleTheme();
     },
-    increment() {
+    incrementCounter() {
       increment();
     },
     setCounter(val: number) {
@@ -45,6 +46,12 @@ onMounted(() => {
     },
     toggleWideMode() {
       toggleWideMode();
+    },
+    mountComponents(n: number) {
+      lifecycleCount.value = n;
+    },
+    unmountComponents() {
+      lifecycleCount.value = 0;
     },
   };
   (window as unknown as Record<string, unknown>).__benchmark = hooks;
@@ -76,6 +83,14 @@ onMounted(() => {
       "
     >
       <Level :depth="1" :max-depth="computedMaxDepth()" />
+    </div>
+    <div id="lifecycle-container">
+      <Level
+        v-for="i in lifecycleCount"
+        :key="i"
+        :depth="1"
+        :max-depth="3"
+      />
     </div>
   </div>
 </template>

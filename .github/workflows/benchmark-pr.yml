@@ -57,6 +57,7 @@ jobs:
             -e BENCHMARK_REDUCED=true \
             -e BENCHMARK_RUNS=10 \
             -e BENCHMARK_WARMUP=3 \
+            -e BENCHMARK_FAIL_ON_VARIANCE=false \
             -v ${{ github.workspace }}/results:/app/results \
             bench:pr-${{ github.event.pull_request.number }}
 

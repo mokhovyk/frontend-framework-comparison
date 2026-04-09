@@ -109,16 +109,6 @@ frontend-framework-comparison/
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   └── vite.config.ts
-│   └── svelte/
-│       ├── apps/
-│       │   ├── table/
-│       │   ├── nested-tree/
-│       │   ├── dashboard/
-│       │   ├── form/
-│       │   └── router/
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── vite.config.ts
 ├── results/
 │   ├── benchmark.db                  # SQLite historical results
 │   ├── latest.json                   # Most recent run
@@ -170,7 +160,7 @@ frontend-framework-comparison/
 
 ## Phase 2: Implement Test Applications
 
-**Goal:** All 5 apps implemented in all 4 frameworks with feature parity.
+**Goal:** All 5 apps implemented in all 3 frameworks with feature parity.
 
 ### 2A: Shared Infrastructure
 
@@ -186,7 +176,7 @@ frontend-framework-comparison/
 
 ### 2B: App A — CRUD Data Table (per framework)
 
-Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total = ×4.
+Each sub-task is repeated ×3 (React, Angular, Vue). Listed once; total = ×3.
 
 | # | Task | Size | Depends On |
 |---|------|------|------------|
@@ -199,7 +189,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2B.7 | Pagination (50/page, full controls) | M | 2B.1 |
 | 2B.8 | Wire up `window.__benchmark` hooks for harness | S | 2B.1–2B.7 |
 
-**Per-framework effort:** L (8 tasks × 4 frameworks = 32 tasks total)
+**Per-framework effort:** L (8 tasks × 3 frameworks = 24 tasks total)
 
 ### 2C: App B — Deeply Nested Tree (per framework)
 
@@ -212,7 +202,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2C.5 | Wide mode (3 children per level, depth capped at 10) | M | 2C.1 |
 | 2C.6 | Wire up `window.__benchmark` hooks | S | 2C.1–2C.5 |
 
-**Per-framework effort:** M (6 tasks × 4 = 24 total)
+**Per-framework effort:** M (6 tasks × 3 = 18 total)
 
 ### 2D: App C — Real-Time Dashboard (per framework)
 
@@ -227,7 +217,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2D.7 | Benchmark mode (10s run, frame stats collection) | M | 2D.1–2D.6 |
 | 2D.8 | Wire up `window.__benchmark` hooks | S | 2D.7 |
 
-**Per-framework effort:** M-L (8 tasks × 4 = 32 total)
+**Per-framework effort:** M-L (8 tasks × 3 = 24 total)
 
 ### 2E: App D — Dynamic Form (per framework)
 
@@ -243,7 +233,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2E.8 | Stress test button (add 50 groups, remove one by one) | M | 2E.5 |
 | 2E.9 | Wire up `window.__benchmark` hooks | S | 2E.1–2E.8 |
 
-**Per-framework effort:** M-L (9 tasks × 4 = 36 total)
+**Per-framework effort:** M-L (9 tasks × 3 = 27 total)
 
 ### 2F: App E — Routed Multi-Page App (per framework)
 
@@ -261,7 +251,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2F.10 | Native prefetch on nav hover (where supported) | S | 2F.1 |
 | 2F.11 | Wire up `window.__benchmark` hooks | S | 2F.1–2F.10 |
 
-**Per-framework effort:** L (11 tasks × 4 = 44 total)
+**Per-framework effort:** L (11 tasks × 3 = 33 total)
 
 ### 2G: Parity Tests
 
@@ -273,7 +263,7 @@ Each sub-task is repeated ×4 (React, Angular, Vue, Svelte). Listed once; total 
 | 2G.4 | Form parity test: conditional fields, validation messages, repeatable groups | L | 2E |
 | 2G.5 | Router parity test: navigation, auth guard, lazy loading, data fetch | L | 2F |
 
-**Deliverable:** All 20 apps (5 apps × 4 frameworks) build and pass parity tests.
+**Deliverable:** All 15 apps (5 apps × 3 frameworks) build and pass parity tests.
 
 ---
 

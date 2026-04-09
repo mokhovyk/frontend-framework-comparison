@@ -7,7 +7,7 @@ export default function About() {
       </div>
       <div style={{ maxWidth: '600px', lineHeight: 1.8 }}>
         <p style={{ marginBottom: '16px' }}>
-          This benchmark suite compares React, Angular, Vue, and Svelte across identical
+          This benchmark suite compares React, Angular, and Vue across identical
           applications to produce fair, reproducible performance measurements.
         </p>
         <h2 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Applications</h2>

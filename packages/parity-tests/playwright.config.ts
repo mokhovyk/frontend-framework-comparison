@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const FRAMEWORKS = ['react', 'angular', 'vue', 'svelte'];
+const FRAMEWORKS = ['react', 'angular', 'vue'];
 const APPS = ['table', 'nested-tree', 'dashboard', 'form', 'router'];
 const PORT_START = 3000;
 

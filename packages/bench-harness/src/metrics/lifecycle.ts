@@ -39,12 +39,12 @@ export async function measureLifecycle(
   const c2Runs: number[] = [];
   for (let i = 0; i < config.warmup + runs; i++) {
     await ctx.forceGC();
-    // Setup: mount first
     await ctx.page.evaluate(() => {
       const bm = (window as unknown as { __benchmark: { mountComponents: (n: number) => void } }).__benchmark;
       bm.mountComponents(1000);
     });
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 200));
+    await ctx.forceGC();
 
     const time = await ctx.page.evaluate(() => {
       return new Promise<number>((resolve) => {

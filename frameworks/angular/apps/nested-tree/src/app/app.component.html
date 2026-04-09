@@ -18,4 +18,10 @@
     [maxDepth]="effectiveMaxDepth"
     [wideMode]="wideMode()"
   ></app-level>
+
+  <div id="lifecycle-container">
+    @for (i of lifecycleItems(); track i) {
+      <app-level [depth]="1" [maxDepth]="3" [wideMode]="false"></app-level>
+    }
+  </div>
 </div>
