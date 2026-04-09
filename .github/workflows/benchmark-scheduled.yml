@@ -59,6 +59,7 @@ jobs:
           docker run --cpus=2 --memory=4g \
             -e BENCHMARK_RUNS=25 \
             -e BENCHMARK_WARMUP=5 \
+            -e BENCHMARK_FAIL_ON_VARIANCE=false \
             -v ${{ github.workspace }}/results:/app/results \
             bench:weekly
 

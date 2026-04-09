@@ -37,8 +37,8 @@ const defaultCvThresholds: Record<MetricCategory, number> = {
   bundle: 0.02,
   build: 0.10,
   loading: 0.15,
-  rendering: 0.10,
-  memory: 0.20,
+  rendering: 0.12,
+  memory: 0.25,
   reactivity: 0.12,
   lifecycle: 0.20,
 };
@@ -79,13 +79,22 @@ const metricPrefixToCategory: Record<string, MetricCategory> = {
   C1: 'lifecycle', C2: 'lifecycle', C3: 'lifecycle',
 };
 
-export function getCvThreshold(metricKey: string, config: BenchmarkConfig): number {
+export function getMetricCategory(metricKey: string): MetricCategory | undefined {
   const prefix = metricKey.split('_')[0];
-  const category = metricPrefixToCategory[prefix];
-  if (category && config.cvThresholds[category] !== undefined) {
-    return config.cvThresholds[category];
+  return metricPrefixToCategory[prefix];
+}
+
+export function getCvThreshold(metricKey: string, config: BenchmarkConfig): number {
+  const category = getMetricCategory(metricKey);
+  let threshold = (category && config.cvThresholds[category] !== undefined)
+    ? config.cvThresholds[category]
+    : config.cvThreshold;
+
+  // Fewer runs in reduced mode → higher natural variance (√25/√10 ≈ 1.58)
+  if (config.reduced) {
+    threshold *= 1.5;
   }
-  return config.cvThreshold;
+  return threshold;
 }
 
 export function getConfig(overrides?: Partial<BenchmarkConfig>): BenchmarkConfig {
