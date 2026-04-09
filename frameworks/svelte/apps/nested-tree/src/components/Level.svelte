@@ -30,6 +30,7 @@
 <div
   class="level"
   data-level={depth}
+  data-bench-leaf={isLeaf ? '' : undefined}
   data-theme={theme}
   style="padding-left: 12px; border-left: 2px solid {theme === 'dark' ? '#334155' : '#cbd5e1'}; margin: 4px 0;"
 >
