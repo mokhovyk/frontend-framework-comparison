@@ -6,11 +6,14 @@ import { CounterService } from './components/level/counter.service';
 declare global {
   interface Window {
     __benchmark?: {
+      incrementCounter: () => void;
       toggleTheme: () => void;
+      toggleWideMode: () => void;
+      mountComponents: (n: number) => void;
+      unmountComponents: () => void;
       increment: () => void;
       getCounter: () => number;
       getTheme: () => string;
-      toggleWideMode: () => void;
     };
   }
 }
@@ -25,6 +28,7 @@ declare global {
 export class AppComponent implements OnInit {
   readonly wideMode = signal(false);
   readonly maxDepth = 50;
+  readonly dynamicComponents = signal(0);
 
   constructor(
     private themeService: ThemeService,
@@ -59,11 +63,27 @@ export class AppComponent implements OnInit {
     return this.wideMode() ? 10 : this.maxDepth;
   }
 
+  get dynamicComponentIds(): number[] {
+    return Array.from({ length: this.dynamicComponents() }, (_, i) => i);
+  }
+
   private exposeBenchmarkHooks(): void {
     const self = this;
     window.__benchmark = {
+      incrementCounter() {
+        self.increment();
+      },
       toggleTheme() {
         self.toggleTheme();
+      },
+      toggleWideMode() {
+        self.toggleWideMode();
+      },
+      mountComponents(n: number) {
+        self.dynamicComponents.set(n);
+      },
+      unmountComponents() {
+        self.dynamicComponents.set(0);
       },
       increment() {
         self.increment();
@@ -73,9 +93,6 @@ export class AppComponent implements OnInit {
       },
       getTheme() {
         return self.theme();
-      },
-      toggleWideMode() {
-        self.toggleWideMode();
       },
     };
   }

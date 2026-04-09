@@ -12,6 +12,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [counter, setCounter] = useState(0);
   const [wideMode, setWideMode] = useState(false);
+  const [dynamicComponents, setDynamicComponents] = useState<number>(0);
 
   const maxDepth = wideMode ? MAX_DEPTH_WIDE : MAX_DEPTH_NORMAL;
   const childrenPerLevel = wideMode ? CHILDREN_PER_LEVEL_WIDE : 1;
@@ -20,12 +21,13 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Benchmark hooks
   useEffect(() => {
     const hooks = {
       incrementCounter: () => setCounter((c) => c + 1),
       toggleTheme: () => setTheme((t) => (t === 'light' ? 'dark' : 'light')),
       toggleWideMode: () => setWideMode((w) => !w),
+      mountComponents: (n: number) => setDynamicComponents(n),
+      unmountComponents: () => setDynamicComponents(0),
     };
     (window as unknown as Record<string, unknown>).__benchmark = hooks;
     return () => {
@@ -64,6 +66,9 @@ export default function App() {
               maxDepth={maxDepth}
               childrenPerLevel={childrenPerLevel}
             />
+            {Array.from({ length: dynamicComponents }, (_, i) => (
+              <Level key={`dyn-${i}`} depth={1} maxDepth={3} childrenPerLevel={1} />
+            ))}
           </div>
         </div>
       </CounterContext.Provider>

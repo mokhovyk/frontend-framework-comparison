@@ -5,6 +5,7 @@ import Level from './components/Level.vue';
 const theme = ref<'light' | 'dark'>('dark');
 const counter = ref(0);
 const wideMode = ref(false);
+const dynamicComponents = ref(0);
 
 provide('theme', theme);
 provide('counter', counter);
@@ -25,11 +26,22 @@ function toggleWideMode() {
 const maxDepth = ref(50);
 const computedMaxDepth = () => (wideMode.value ? 10 : maxDepth.value);
 
-// Benchmark hooks
 onMounted(() => {
   const hooks = {
+    incrementCounter() {
+      increment();
+    },
     toggleTheme() {
       toggleTheme();
+    },
+    toggleWideMode() {
+      toggleWideMode();
+    },
+    mountComponents(n: number) {
+      dynamicComponents.value = n;
+    },
+    unmountComponents() {
+      dynamicComponents.value = 0;
     },
     increment() {
       increment();
@@ -42,9 +54,6 @@ onMounted(() => {
     },
     getTheme() {
       return theme.value;
-    },
-    toggleWideMode() {
-      toggleWideMode();
     },
   };
   (window as unknown as Record<string, unknown>).__benchmark = hooks;
@@ -76,6 +85,12 @@ onMounted(() => {
       "
     >
       <Level :depth="1" :max-depth="computedMaxDepth()" />
+      <Level
+        v-for="i in dynamicComponents"
+        :key="'dyn-' + i"
+        :depth="1"
+        :max-depth="3"
+      />
     </div>
   </div>
 </template>

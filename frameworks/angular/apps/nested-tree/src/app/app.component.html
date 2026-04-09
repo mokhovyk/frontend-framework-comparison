@@ -18,4 +18,11 @@
     [maxDepth]="effectiveMaxDepth"
     [wideMode]="wideMode()"
   ></app-level>
+  @for (id of dynamicComponentIds; track id) {
+    <app-level
+      [depth]="1"
+      [maxDepth]="3"
+      [wideMode]="false"
+    ></app-level>
+  }
 </div>

@@ -5,6 +5,7 @@
   let theme = $state<'light' | 'dark'>('dark');
   let counter = $state(0);
   let wideMode = $state(false);
+  let dynamicComponents = $state(0);
 
   let maxDepth = $derived(wideMode ? 10 : 50);
 
@@ -28,16 +29,27 @@
     wideMode = !wideMode;
   }
 
-  // Benchmark hooks
   (window as any).__benchmark = {
+    incrementCounter() {
+      counter++;
+    },
+    toggleTheme() {
+      toggleTheme();
+    },
+    toggleWideMode() {
+      toggleWideMode();
+    },
+    mountComponents(n: number) {
+      dynamicComponents = n;
+    },
+    unmountComponents() {
+      dynamicComponents = 0;
+    },
     setTheme(t: 'light' | 'dark') {
       theme = t;
     },
     getTheme() {
       return theme;
-    },
-    incrementCounter() {
-      counter++;
     },
     getCounter() {
       return counter;
@@ -67,5 +79,8 @@
 
   <div style="margin-top: 16px;">
     <Level depth={1} {maxDepth} {wideMode} />
+    {#each Array.from({ length: dynamicComponents }, (_, i) => i) as id (id)}
+      <Level depth={1} maxDepth={3} wideMode={false} />
+    {/each}
   </div>
 </div>
