@@ -44,16 +44,50 @@ export async function measureLoading(
 
       const paintTimings = await page.evaluate(() => {
         return new Promise<{ fcp: number; lcp: number }>((resolve) => {
-          const entries = performance.getEntriesByType('paint');
-          const fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
+          let fcp = 0;
+          let lcp = 0;
+          let paintSettled = false;
+          let lcpSettled = false;
+          let resolved = false;
 
-          new PerformanceObserver((list) => {
-            const lcpEntries = list.getEntries();
-            const lcp = lcpEntries[lcpEntries.length - 1]?.startTime ?? fcp;
-            resolve({ fcp, lcp });
-          }).observe({ type: 'largest-contentful-paint', buffered: true });
+          const tryResolve = () => {
+            if (resolved || !paintSettled || !lcpSettled) return;
+            resolved = true;
+            resolve({ fcp, lcp: lcp || fcp });
+          };
 
-          setTimeout(() => resolve({ fcp, lcp: fcp }), 5000);
+          try {
+            new PerformanceObserver((list) => {
+              for (const entry of list.getEntries()) {
+                if (entry.name === 'first-contentful-paint') {
+                  fcp = entry.startTime;
+                }
+              }
+              paintSettled = true;
+              tryResolve();
+            }).observe({ type: 'paint', buffered: true });
+          } catch {
+            const entries = performance.getEntriesByType('paint');
+            fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
+            paintSettled = true;
+          }
+
+          try {
+            new PerformanceObserver((list) => {
+              const entries = list.getEntries();
+              lcp = entries[entries.length - 1]?.startTime ?? 0;
+              lcpSettled = true;
+              tryResolve();
+            }).observe({ type: 'largest-contentful-paint', buffered: true });
+          } catch {
+            lcpSettled = true;
+          }
+
+          setTimeout(() => {
+            paintSettled = true;
+            lcpSettled = true;
+            tryResolve();
+          }, 5000);
         });
       });
 
@@ -102,8 +136,18 @@ export async function measureLoading(
     }
   }
 
-  results['L1_fcp'] = statToResult(computeStats(fcpRuns), 'ms');
-  results['L2_lcp'] = statToResult(computeStats(lcpRuns), 'ms');
+  const validFcp = fcpRuns.filter((v) => v > 0);
+  const validLcp = lcpRuns.filter((v) => v > 0);
+
+  if (validFcp.length < fcpRuns.length) {
+    console.warn(`    L1_fcp: dropped ${fcpRuns.length - validFcp.length}/${fcpRuns.length} zero-valued runs (paint entry missing)`);
+  }
+  if (validLcp.length < lcpRuns.length) {
+    console.warn(`    L2_lcp: dropped ${lcpRuns.length - validLcp.length}/${lcpRuns.length} zero-valued runs (paint entry missing)`);
+  }
+
+  if (validFcp.length > 0) results['L1_fcp'] = statToResult(computeStats(validFcp), 'ms');
+  if (validLcp.length > 0) results['L2_lcp'] = statToResult(computeStats(validLcp), 'ms');
   results['L3_tti'] = statToResult(computeStats(ttiRuns), 'ms');
   results['L4_tbt'] = statToResult(computeStats(tbtRuns), 'ms');
 
