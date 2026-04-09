@@ -10,11 +10,14 @@ export async function measureMemory(
   const results: Record<string, BenchmarkResult> = {};
   const memRuns = config.reduced ? 5 : 10;
 
+  const settle = () => new Promise((r) => setTimeout(r, 500));
+
   // M1: Idle heap (empty app)
   console.log('    M1: Idle heap...');
   const m1Runs: number[] = [];
   for (let i = 0; i < memRuns; i++) {
     await ctx.page.reload({ waitUntil: 'networkidle' });
+    await settle();
     const heap = await ctx.getHeapUsage();
     m1Runs.push(heap);
   }
@@ -29,6 +32,7 @@ export async function measureMemory(
     await ctx.page.evaluate(() => {
       (window as unknown as { __benchmark: { createRows: (n: number) => void } }).__benchmark.createRows(10000);
     });
+    await settle();
     const heap = await ctx.getHeapUsage();
     m2Runs.push(heap);
   }
@@ -45,6 +49,7 @@ export async function measureMemory(
       bm.createRows(10000);
       bm.clearRows();
     });
+    await settle();
     const heap = await ctx.getHeapUsage();
     m3Runs.push(heap);
   }
@@ -63,6 +68,7 @@ export async function measureMemory(
         bm.clearRows();
       }
     });
+    await settle();
     const heap = await ctx.getHeapUsage();
     m4Runs.push(heap);
   }

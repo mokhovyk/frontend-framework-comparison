@@ -213,19 +213,23 @@ async function main() {
   await insertIntoSQLite(results, dbPath);
   console.log(`Results inserted into: ${dbPath}`);
 
-  let hasHighVariance = false;
+  let highVarianceCount = 0;
   for (const [framework, metrics] of Object.entries(results.results)) {
     for (const [metric, result] of Object.entries(metrics)) {
       if (result.cv !== undefined && result.cv > config.cvThreshold) {
         console.warn(`WARNING: High variance for ${framework}/${metric}: CV=${(result.cv * 100).toFixed(1)}%`);
-        hasHighVariance = true;
+        highVarianceCount++;
       }
     }
   }
 
-  if (hasHighVariance) {
-    console.warn('\nSome benchmarks exceeded the variance threshold. Consider re-running.');
-    process.exit(1);
+  if (highVarianceCount > 0) {
+    console.warn(`\n${highVarianceCount} metric(s) exceeded the ${(config.cvThreshold * 100).toFixed(0)}% CV threshold.`);
+    if (config.failOnHighVariance) {
+      console.warn('Set BENCHMARK_FAIL_ON_VARIANCE=false to treat this as a warning.');
+      process.exit(1);
+    }
+    console.warn('Continuing despite high variance (BENCHMARK_FAIL_ON_VARIANCE=false).');
   }
 
   console.log('\nBenchmark suite completed successfully.');

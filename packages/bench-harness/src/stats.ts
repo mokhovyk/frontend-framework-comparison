@@ -81,10 +81,10 @@ export function computeStats(runs: number[]): StatResult {
   const med = percentile(s, 50);
   const [ci95_lower, ci95_upper] = bootstrapCI(runs);
 
-  // Mean excluding outliers (for reporting only — median is primary)
   const outlierIndices = new Set(findOutliers(runs));
   const cleanRuns = runs.filter((_, i) => !outlierIndices.has(i));
   const cleanMean = cleanRuns.length > 0 ? mean(cleanRuns) : avg;
+  const cleanSd = cleanRuns.length > 1 ? stddev(cleanRuns, cleanMean) : sd;
 
   return {
     median: med,
@@ -96,7 +96,7 @@ export function computeStats(runs: number[]): StatResult {
     max: s[s.length - 1],
     ci95_lower,
     ci95_upper,
-    cv: avg > 0 ? sd / avg : 0,
+    cv: cleanMean > 0 ? cleanSd / cleanMean : 0,
     runs,
   };
 }

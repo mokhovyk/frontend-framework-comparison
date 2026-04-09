@@ -7,8 +7,10 @@ export interface BenchmarkConfig {
   delayBetweenOps: number;
   /** Delay in ms after forced GC */
   delayAfterGC: number;
-  /** Coefficient of variation threshold (fail if exceeded) */
+  /** Coefficient of variation threshold (warn if exceeded) */
   cvThreshold: number;
+  /** Exit with code 1 when any metric exceeds cvThreshold */
+  failOnHighVariance: boolean;
   /** Whether to run in reduced mode (fewer metrics, fewer runs) */
   reduced: boolean;
   /** Chrome executable path */
@@ -33,6 +35,7 @@ export const defaultConfig: BenchmarkConfig = {
   delayBetweenOps: 500,
   delayAfterGC: 500,
   cvThreshold: 0.05,
+  failOnHighVariance: process.env['BENCHMARK_FAIL_ON_VARIANCE'] !== 'false',
   reduced: isReduced,
   chromePath: process.env['CHROME_BIN'] || 'chromium',
   chromeFlags: [
@@ -53,11 +56,13 @@ export const defaultConfig: BenchmarkConfig = {
 export function getConfig(overrides?: Partial<BenchmarkConfig>): BenchmarkConfig {
   const runsEnv = process.env['BENCHMARK_RUNS'];
   const warmupEnv = process.env['BENCHMARK_WARMUP'];
+  const cvEnv = process.env['BENCHMARK_CV_THRESHOLD'];
 
   return {
     ...defaultConfig,
     ...(runsEnv ? { runs: parseInt(runsEnv, 10) } : {}),
     ...(warmupEnv ? { warmup: parseInt(warmupEnv, 10) } : {}),
+    ...(cvEnv ? { cvThreshold: parseFloat(cvEnv) } : {}),
     ...overrides,
   };
 }

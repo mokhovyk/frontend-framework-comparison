@@ -11,9 +11,10 @@ export async function measureLoading(
   config: BenchmarkConfig,
 ): Promise<Record<string, BenchmarkResult>> {
   const results: Record<string, BenchmarkResult> = {};
-  const runs = config.reduced ? 10 : 21;
+  const measured = config.reduced ? 10 : 21;
+  const warmup = config.warmup;
+  const totalRuns = warmup + measured;
 
-  // Use Playwright's built-in performance metrics as Lighthouse CI wrapper
   const { chromium } = await import('playwright');
 
   const fcpRuns: number[] = [];
@@ -21,7 +22,7 @@ export async function measureLoading(
   const ttiRuns: number[] = [];
   const tbtRuns: number[] = [];
 
-  for (let i = 0; i < runs; i++) {
+  for (let i = 0; i < totalRuns; i++) {
     const browser = await chromium.launch({
       executablePath: config.chromePath,
       args: config.chromeFlags,
@@ -86,10 +87,12 @@ export async function measureLoading(
         return total;
       }, [paintTimings.fcp, tti] as [number, number]);
 
-      fcpRuns.push(paintTimings.fcp);
-      lcpRuns.push(paintTimings.lcp);
-      ttiRuns.push(tti);
-      tbtRuns.push(tbt);
+      if (i >= warmup) {
+        fcpRuns.push(paintTimings.fcp);
+        lcpRuns.push(paintTimings.lcp);
+        ttiRuns.push(tti);
+        tbtRuns.push(tbt);
+      }
     } finally {
       await browser.close();
     }
