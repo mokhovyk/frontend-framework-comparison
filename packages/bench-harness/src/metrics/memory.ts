@@ -8,25 +8,26 @@ export async function measureMemory(
   config: BenchmarkConfig,
 ): Promise<Record<string, BenchmarkResult>> {
   const results: Record<string, BenchmarkResult> = {};
-  const memRuns = config.reduced ? 5 : 10;
+  const memRuns = config.reduced ? 7 : 15;
+  const warmup = config.warmup;
 
   const settle = () => new Promise((r) => setTimeout(r, 500));
 
   // M1: Idle heap (empty app)
   console.log('    M1: Idle heap...');
   const m1Runs: number[] = [];
-  for (let i = 0; i < memRuns; i++) {
+  for (let i = 0; i < warmup + memRuns; i++) {
     await ctx.page.reload({ waitUntil: 'networkidle' });
     await settle();
     const heap = await ctx.getHeapUsage();
-    m1Runs.push(heap);
+    if (i >= warmup) m1Runs.push(heap);
   }
   results['M1_idle_heap'] = statToResult(computeStats(m1Runs), 'bytes');
 
   // M2: Heap after 10k rows
   console.log('    M2: Heap after 10k rows...');
   const m2Runs: number[] = [];
-  for (let i = 0; i < memRuns; i++) {
+  for (let i = 0; i < warmup + memRuns; i++) {
     await ctx.page.reload({ waitUntil: 'networkidle' });
     await ctx.page.waitForFunction(() => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined');
     await ctx.page.evaluate(() => {
@@ -34,14 +35,14 @@ export async function measureMemory(
     });
     await settle();
     const heap = await ctx.getHeapUsage();
-    m2Runs.push(heap);
+    if (i >= warmup) m2Runs.push(heap);
   }
   results['M2_heap_10k'] = statToResult(computeStats(m2Runs), 'bytes');
 
   // M3: Heap after create then clear (leak detection)
   console.log('    M3: Heap after clear...');
   const m3Runs: number[] = [];
-  for (let i = 0; i < memRuns; i++) {
+  for (let i = 0; i < warmup + memRuns; i++) {
     await ctx.page.reload({ waitUntil: 'networkidle' });
     await ctx.page.waitForFunction(() => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined');
     await ctx.page.evaluate(() => {
@@ -51,14 +52,14 @@ export async function measureMemory(
     });
     await settle();
     const heap = await ctx.getHeapUsage();
-    m3Runs.push(heap);
+    if (i >= warmup) m3Runs.push(heap);
   }
   results['M3_heap_after_clear'] = statToResult(computeStats(m3Runs), 'bytes');
 
   // M4: Heap after 5 create/clear cycles
   console.log('    M4: Heap after 5 cycles...');
   const m4Runs: number[] = [];
-  for (let i = 0; i < memRuns; i++) {
+  for (let i = 0; i < warmup + memRuns; i++) {
     await ctx.page.reload({ waitUntil: 'networkidle' });
     await ctx.page.waitForFunction(() => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined');
     await ctx.page.evaluate(() => {
@@ -70,7 +71,7 @@ export async function measureMemory(
     });
     await settle();
     const heap = await ctx.getHeapUsage();
-    m4Runs.push(heap);
+    if (i >= warmup) m4Runs.push(heap);
   }
   results['M4_heap_5_cycles'] = statToResult(computeStats(m4Runs), 'bytes');
 

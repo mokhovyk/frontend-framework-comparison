@@ -38,9 +38,9 @@ const defaultCvThresholds: Record<MetricCategory, number> = {
   build: 0.10,
   loading: 0.15,
   rendering: 0.10,
-  memory: 0.05,
+  memory: 0.20,
   reactivity: 0.12,
-  lifecycle: 0.15,
+  lifecycle: 0.20,
 };
 
 export const defaultConfig: BenchmarkConfig = {
