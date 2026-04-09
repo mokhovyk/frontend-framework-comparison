@@ -8,7 +8,7 @@ pnpm --filter results-site build
 
 echo ""
 echo "Building framework apps..."
-for framework in react angular vue svelte; do
+for framework in react angular vue; do
   echo "  Building $framework..."
   pnpm --filter "./frameworks/$framework" build
 done

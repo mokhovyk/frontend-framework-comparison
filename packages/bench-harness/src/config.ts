@@ -44,7 +44,7 @@ export const defaultConfig: BenchmarkConfig = {
     '--disable-renderer-backgrounding',
     '--js-flags=--expose-gc',
   ],
-  frameworks: ['react', 'angular', 'vue', 'svelte'],
+  frameworks: ['react', 'angular', 'vue'],
   apps: ['table', 'nested-tree', 'dashboard', 'form', 'router'],
   portStart: 3000,
   outputDir: 'results',

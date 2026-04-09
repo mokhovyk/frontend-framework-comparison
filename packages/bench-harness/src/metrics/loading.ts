@@ -27,78 +27,72 @@ export async function measureLoading(
       args: config.chromeFlags,
     });
 
-    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
-    const page = await context.newPage();
-    const cdp = await context.newCDPSession(page);
+    try {
+      const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+      const page = await context.newPage();
+      const cdp = await context.newCDPSession(page);
 
-    // Enable performance tracing
-    await cdp.send('Performance.enable');
+      await cdp.send('Performance.enable');
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
-    // Apply CPU throttling (4x slowdown)
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
 
-    await page.goto(url, { waitUntil: 'networkidle' });
+      const paintTimings = await page.evaluate(() => {
+        return new Promise<{ fcp: number; lcp: number }>((resolve) => {
+          const entries = performance.getEntriesByType('paint');
+          const fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
 
-    // Collect paint timing
-    const paintTimings = await page.evaluate(() => {
-      return new Promise<{ fcp: number; lcp: number }>((resolve) => {
-        const entries = performance.getEntriesByType('paint');
-        const fcp = entries.find((e) => e.name === 'first-contentful-paint')?.startTime ?? 0;
+          new PerformanceObserver((list) => {
+            const lcpEntries = list.getEntries();
+            const lcp = lcpEntries[lcpEntries.length - 1]?.startTime ?? fcp;
+            resolve({ fcp, lcp });
+          }).observe({ type: 'largest-contentful-paint', buffered: true });
 
-        // Use PerformanceObserver for LCP
-        new PerformanceObserver((list) => {
-          const lcpEntries = list.getEntries();
-          const lcp = lcpEntries[lcpEntries.length - 1]?.startTime ?? fcp;
-          resolve({ fcp, lcp });
-        }).observe({ type: 'largest-contentful-paint', buffered: true });
-
-        // Fallback if no LCP
-        setTimeout(() => resolve({ fcp, lcp: fcp }), 5000);
+          setTimeout(() => resolve({ fcp, lcp: fcp }), 5000);
+        });
       });
-    });
 
-    // TTI approximation: time until main thread idle for 5s
-    const tti = await page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        let lastBusyTime = performance.now();
-        const check = () => {
-          if (performance.now() - lastBusyTime > 5000) {
-            resolve(lastBusyTime);
-          } else {
-            requestAnimationFrame(check);
-          }
-        };
+      const tti = await page.evaluate(() => {
+        return new Promise<number>((resolve) => {
+          let lastBusyTime = performance.now();
+          const check = () => {
+            if (performance.now() - lastBusyTime > 5000) {
+              resolve(lastBusyTime);
+            } else {
+              requestAnimationFrame(check);
+            }
+          };
 
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            lastBusyTime = entry.startTime + entry.duration;
-          }
-        }).observe({ type: 'longtask', buffered: true });
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              lastBusyTime = entry.startTime + entry.duration;
+            }
+          }).observe({ type: 'longtask', buffered: true });
 
-        setTimeout(check, 100);
-        setTimeout(() => resolve(performance.now()), 10000); // 10s timeout
+          setTimeout(check, 100);
+          setTimeout(() => resolve(performance.now()), 10000);
+        });
       });
-    });
 
-    // TBT: sum of long tasks > 50ms between FCP and TTI
-    const tbt = await page.evaluate(([fcp, ttiVal]: [number, number]) => {
-      const entries = performance.getEntriesByType('longtask') as PerformanceEntry[];
-      let total = 0;
-      for (const entry of entries) {
-        if (entry.startTime >= fcp && entry.startTime <= ttiVal) {
-          const blocking = entry.duration - 50;
-          if (blocking > 0) total += blocking;
+      const tbt = await page.evaluate(([fcp, ttiVal]: [number, number]) => {
+        const entries = performance.getEntriesByType('longtask') as PerformanceEntry[];
+        let total = 0;
+        for (const entry of entries) {
+          if (entry.startTime >= fcp && entry.startTime <= ttiVal) {
+            const blocking = entry.duration - 50;
+            if (blocking > 0) total += blocking;
+          }
         }
-      }
-      return total;
-    }, [paintTimings.fcp, tti] as [number, number]);
+        return total;
+      }, [paintTimings.fcp, tti] as [number, number]);
 
-    fcpRuns.push(paintTimings.fcp);
-    lcpRuns.push(paintTimings.lcp);
-    ttiRuns.push(tti);
-    tbtRuns.push(tbt);
-
-    await browser.close();
+      fcpRuns.push(paintTimings.fcp);
+      lcpRuns.push(paintTimings.lcp);
+      ttiRuns.push(tti);
+      tbtRuns.push(tbt);
+    } finally {
+      await browser.close();
+    }
   }
 
   results['L1_fcp'] = statToResult(computeStats(fcpRuns), 'ms');

@@ -37,7 +37,6 @@ async function getVersionInfo(): Promise<FullBenchmarkResults['meta']> {
       react: '19.x',
       angular: '19.x',
       vue: '3.5.x',
-      svelte: '5.x',
     },
   };
 }
@@ -152,58 +151,51 @@ async function runBenchmarkSuite(config: BenchmarkConfig): Promise<FullBenchmark
   console.log(`Runs: ${config.runs}, Warmup: ${config.warmup}, Reduced: ${config.reduced}`);
   console.log();
 
-  const forwardOrder = [...config.frameworks];
-  const reverseOrder = [...config.frameworks].reverse();
+  for (const framework of config.frameworks) {
+    console.log(`\n--- ${framework.toUpperCase()} ---`);
+    results.results[framework] = {};
+    const fwResults = results.results[framework];
+    const fwDir = join('frameworks', framework);
 
-  for (const order of [forwardOrder, reverseOrder]) {
-    for (const framework of order) {
-      console.log(`\n--- ${framework.toUpperCase()} ---`);
-      if (!results.results[framework]) {
-        results.results[framework] = {};
-      }
-      const fwResults = results.results[framework];
-      const fwDir = join('frameworks', framework);
+    // Phase 1: B1-B3 bundle metrics from pre-built dist (before build-time can clean it)
+    const tableDist = join(fwDir, 'dist', 'table');
+    console.log('  B1-B3: Bundle size (table)...');
+    try {
+      const bundleMetrics = await measureBundle(tableDist);
+      Object.assign(fwResults, bundleMetrics);
+    } catch (e) {
+      console.warn(`    Bundle measurement failed: ${(e as Error).message}`);
+    }
 
-      // Phase 1: B1-B3 bundle metrics from pre-built dist (before build-time can clean it)
-      const tableDist = join(fwDir, 'dist', 'table');
-      console.log('  B1-B3: Bundle size (table)...');
-      try {
-        const bundleMetrics = await measureBundle(tableDist);
-        Object.assign(fwResults, bundleMetrics);
-      } catch (e) {
-        console.warn(`    Bundle measurement failed: ${(e as Error).message}`);
-      }
+    // Phase 2: B5 production build time (table app)
+    console.log('  B5: Production build time (table)...');
+    try {
+      const buildMetrics = await measureBuildTime(framework, 'table', config);
+      Object.assign(fwResults, buildMetrics);
+    } catch (e) {
+      console.warn(`    Build time measurement failed: ${(e as Error).message}`);
+    }
 
-      // Phase 2: B5 production build time (table app)
-      console.log('  B5: Production build time (table)...');
-      try {
-        const buildMetrics = await measureBuildTime(framework, 'table', config);
-        Object.assign(fwResults, buildMetrics);
-      } catch (e) {
-        console.warn(`    Build time measurement failed: ${(e as Error).message}`);
-      }
+    // Phase 3: Browser-based metrics per app
+    const fwIndex = config.frameworks.indexOf(framework);
+    const tablePort = config.portStart + fwIndex * 10 + config.apps.indexOf('table');
+    const nestedTreePort = config.portStart + fwIndex * 10 + config.apps.indexOf('nested-tree');
 
-      // Phase 3: Browser-based metrics per app
-      const fwIndex = config.frameworks.indexOf(framework);
-      const tablePort = config.portStart + fwIndex * 10 + config.apps.indexOf('table');
-      const nestedTreePort = config.portStart + fwIndex * 10 + config.apps.indexOf('nested-tree');
+    try {
+      await runTableMetrics(fwResults, tableDist, tablePort, config);
+    } catch (e) {
+      console.warn(`    Table browser metrics failed: ${(e as Error).message}`);
+    }
 
-      try {
-        await runTableMetrics(fwResults, tableDist, tablePort, config);
-      } catch (e) {
-        console.warn(`    Table browser metrics failed: ${(e as Error).message}`);
-      }
-
-      try {
-        await runNestedTreeMetrics(
-          fwResults,
-          join(fwDir, 'dist', 'nested-tree'),
-          nestedTreePort,
-          config,
-        );
-      } catch (e) {
-        console.warn(`    Nested-tree browser metrics failed: ${(e as Error).message}`);
-      }
+    try {
+      await runNestedTreeMetrics(
+        fwResults,
+        join(fwDir, 'dist', 'nested-tree'),
+        nestedTreePort,
+        config,
+      );
+    } catch (e) {
+      console.warn(`    Nested-tree browser metrics failed: ${(e as Error).message}`);
     }
   }
 

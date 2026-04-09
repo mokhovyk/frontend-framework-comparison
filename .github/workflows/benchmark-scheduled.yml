@@ -29,7 +29,6 @@ jobs:
           cd frameworks/react && pnpm update react react-dom react-router && cd ../..
           cd frameworks/angular && pnpm update @angular/core @angular/common @angular/router @angular/forms @angular/cli && cd ../..
           cd frameworks/vue && pnpm update vue vue-router && cd ../..
-          cd frameworks/svelte && pnpm update svelte svelte-routing && cd ../..
 
       - name: Install dependencies
         run: pnpm install
@@ -76,7 +75,7 @@ jobs:
           echo "Framework versions used in this run:" >> $GITHUB_STEP_SUMMARY
           node -e "
             const p = require;
-            const fws = ['react', 'angular', 'vue', 'svelte'];
+            const fws = ['react', 'angular', 'vue'];
             for (const fw of fws) {
               try {
                 const pkg = require('./frameworks/' + fw + '/node_modules/' + (fw === 'angular' ? '@angular/core' : fw) + '/package.json');

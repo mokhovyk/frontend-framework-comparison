@@ -21,7 +21,7 @@ export async function measureBuildTime(
   for (let i = 0; i < buildRuns; i++) {
     // Clear caches
     try {
-      execSync(`rm -rf node_modules/.cache dist/${app} .angular/cache .svelte-kit .vite`, {
+      execSync(`rm -rf node_modules/.cache dist/${app} .angular/cache .vite`, {
         cwd,
         stdio: 'ignore',
       });

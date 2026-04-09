@@ -10,7 +10,7 @@ import { Component } from '@angular/core';
     </div>
     <div class="widget" style="max-width: 700px; padding: 24px;">
       <p style="margin-bottom: 16px;">
-        This application is part of a benchmark suite comparing React, Angular, Vue, and Svelte
+        This application is part of a benchmark suite comparing React, Angular, and Vue
         across identical real-world scenarios.
       </p>
       <p style="margin-bottom: 16px;">

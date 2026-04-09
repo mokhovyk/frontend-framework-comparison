@@ -1,6 +1,6 @@
 # Frontend Framework Benchmark Suite
 
-A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 19**, **Vue 3.5**, and **Svelte 5** across real-world application scenarios.
+A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 19**, and **Vue 3.5** across real-world application scenarios.
 
 ## Quick Start
 
@@ -49,7 +49,6 @@ frameworks/
   react/            # React 19 implementations
   angular/          # Angular 19 implementations
   vue/              # Vue 3.5 implementations
-  svelte/           # Svelte 5 implementations
 ```
 
 ## Methodology

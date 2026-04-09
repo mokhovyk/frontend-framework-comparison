@@ -19,7 +19,7 @@
       <h2 style="margin-bottom: 12px">Vue Router Benchmark</h2>
       <p style="margin-bottom: 12px; color: var(--color-text-secondary)">
         This application is part of a frontend framework benchmark suite
-        comparing React, Angular, Vue, and Svelte. It tests routing, code
+        comparing React, Angular, and Vue. It tests routing, code
         splitting, lazy loading, and page transition performance.
       </p>
       <h3 style="margin-bottom: 8px">Features</h3>

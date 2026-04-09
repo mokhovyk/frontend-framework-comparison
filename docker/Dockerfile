@@ -30,7 +30,6 @@ COPY packages/results-site/package.json packages/results-site/
 COPY frameworks/react/package.json frameworks/react/
 COPY frameworks/angular/package.json frameworks/angular/
 COPY frameworks/vue/package.json frameworks/vue/
-COPY frameworks/svelte/package.json frameworks/svelte/
 
 RUN pnpm install --frozen-lockfile || pnpm install
 
