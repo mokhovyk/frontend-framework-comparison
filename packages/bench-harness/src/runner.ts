@@ -3,7 +3,7 @@
 import { existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
-import { getConfig, type BenchmarkConfig } from './config.js';
+import { getConfig, getCvThreshold, type BenchmarkConfig } from './config.js';
 import { launchBrowser, navigateToApp, type BrowserContext } from './browser.js';
 import { computeStats } from './stats.js';
 import { writeResults, statToResult, insertIntoSQLite, type FullBenchmarkResults } from './reporter.js';
@@ -216,15 +216,18 @@ async function main() {
   let highVarianceCount = 0;
   for (const [framework, metrics] of Object.entries(results.results)) {
     for (const [metric, result] of Object.entries(metrics)) {
-      if (result.cv !== undefined && result.cv > config.cvThreshold) {
-        console.warn(`WARNING: High variance for ${framework}/${metric}: CV=${(result.cv * 100).toFixed(1)}%`);
+      const threshold = getCvThreshold(metric, config);
+      if (result.cv !== undefined && result.cv > threshold) {
+        console.warn(
+          `WARNING: High variance for ${framework}/${metric}: CV=${(result.cv * 100).toFixed(1)}% (threshold: ${(threshold * 100).toFixed(0)}%)`,
+        );
         highVarianceCount++;
       }
     }
   }
 
   if (highVarianceCount > 0) {
-    console.warn(`\n${highVarianceCount} metric(s) exceeded the ${(config.cvThreshold * 100).toFixed(0)}% CV threshold.`);
+    console.warn(`\n${highVarianceCount} metric(s) exceeded their CV threshold.`);
     if (config.failOnHighVariance) {
       console.warn('Set BENCHMARK_FAIL_ON_VARIANCE=false to treat this as a warning.');
       process.exit(1);

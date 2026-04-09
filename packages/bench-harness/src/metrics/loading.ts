@@ -23,6 +23,10 @@ export async function measureLoading(
   const tbtRuns: number[] = [];
 
   for (let i = 0; i < totalRuns; i++) {
+    // Let the container settle between runs to reduce variance from
+    // resource contention (especially on the first few measured runs).
+    if (i > 0) await new Promise((r) => setTimeout(r, config.delayBetweenOps));
+
     const browser = await chromium.launch({
       executablePath: config.chromePath,
       args: config.chromeFlags,
