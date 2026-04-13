@@ -22,12 +22,12 @@
     "preview:router": "APP=router vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router": "^7.0.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router": "^7.14.0",
     "react-router-dom": "^7.0.0",
-    "shared-data": "workspace:*",
-    "shared-css": "workspace:*"
+    "shared-css": "workspace:*",
+    "shared-data": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

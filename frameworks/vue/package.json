@@ -18,15 +18,15 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "vue": "^3.5.0",
-    "vue-router": "^4.4.0"
+    "vue": "^3.5.32",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
+    "shared-css": "workspace:*",
+    "shared-data": "workspace:*",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
-    "vue-tsc": "^2.2.0",
-    "shared-data": "workspace:*",
-    "shared-css": "workspace:*"
+    "vue-tsc": "^2.2.0"
   }
 }
