@@ -15,9 +15,8 @@ export async function gotoApp(page: Page, app: string, path = '/'): Promise<void
  * Get the text content of all cells in a table column.
  */
 export async function getColumnValues(page: Page, columnIndex: number): Promise<string[]> {
-  return page.$$eval(
-    `.data-table tbody tr td:nth-child(${columnIndex + 1})`,
-    (cells) => cells.map((c) => c.textContent?.trim() ?? ''),
+  return page.$$eval(`.data-table tbody tr td:nth-child(${columnIndex + 1})`, (cells) =>
+    cells.map((c) => c.textContent?.trim() ?? ''),
   );
 }
 

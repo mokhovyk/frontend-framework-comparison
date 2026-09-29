@@ -15,7 +15,13 @@ import {
 } from './config.js';
 import { launchBrowser, launchChromium, navigateToApp, type BrowserContext } from './browser.js';
 import { computeStats, median } from './stats.js';
-import { writeResults, statToResult, insertIntoSQLite, type BenchmarkResult, type FullBenchmarkResults } from './reporter.js';
+import {
+  writeResults,
+  statToResult,
+  insertIntoSQLite,
+  type BenchmarkResult,
+  type FullBenchmarkResults,
+} from './reporter.js';
 import { compareFrameworks } from './compare.js';
 import { addRound, type PooledSamples, type SampleSet } from './samples.js';
 import { measureRendering } from './metrics/rendering.js';
@@ -50,8 +56,13 @@ async function getVersionInfo(config: BenchmarkConfig): Promise<FullBenchmarkRes
   let commit = process.env['GIT_COMMIT'] || process.env['GITHUB_SHA'] || 'unknown';
   if (commit === 'unknown') {
     try {
-      commit = execSync('git rev-parse HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    } catch { /* not in a git repo */ }
+      commit = execSync('git rev-parse HEAD', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      /* not in a git repo */
+    }
   }
 
   let chromeVersion = 'unknown';
@@ -106,7 +117,10 @@ async function runAppRound(
 
   if (app === 'table' && categories.has('loading')) {
     await run('L1-L5: Loading...', () =>
-      measureLoading(url, config, { runs: perRound(suiteRuns.loading, config), warmup: coldWarmup }),
+      measureLoading(url, config, {
+        runs: perRound(suiteRuns.loading, config),
+        warmup: coldWarmup,
+      }),
     );
   }
 
@@ -124,7 +138,11 @@ async function runAppRound(
       await navigateToApp(c, `${url}/?pageSize=all`);
       if (categories.has('rendering')) {
         await run('R1-R9: Rendering...', () =>
-          measureRendering(c, { runs: perRound(suiteRuns.rendering, config), warmup, reduced: config.reduced }),
+          measureRendering(c, {
+            runs: perRound(suiteRuns.rendering, config),
+            warmup,
+            reduced: config.reduced,
+          }),
         );
       }
       if (categories.has('memory')) {
@@ -169,7 +187,10 @@ async function closeServers(servers: Map<string, StaticServer>) {
   await Promise.all([...servers.values()].map((s) => s.close()));
 }
 
-async function runBenchmarkSuite(config: BenchmarkConfig, pool: PooledSamples): Promise<Record<string, Record<string, BenchmarkResult>>> {
+async function runBenchmarkSuite(
+  config: BenchmarkConfig,
+  pool: PooledSamples,
+): Promise<Record<string, Record<string, BenchmarkResult>>> {
   const values: Record<string, Record<string, BenchmarkResult>> = {};
   for (const fw of config.frameworks) values[fw] = {};
 
@@ -292,12 +313,16 @@ async function retryHighVarianceMetrics(
   retried: Set<string>,
   config: BenchmarkConfig,
 ): Promise<void> {
-  const groups = new Map<string, { framework: string; app: BrowserApp; categories: Set<MetricCategory> }>();
+  const groups = new Map<
+    string,
+    { framework: string; app: BrowserApp; categories: Set<MetricCategory> }
+  >();
   for (const entry of entries) {
     const app = categoryToApp[entry.category];
     if (!app) continue;
     const key = `${entry.framework}:${app}`;
-    if (!groups.has(key)) groups.set(key, { framework: entry.framework, app, categories: new Set() });
+    if (!groups.has(key))
+      groups.set(key, { framework: entry.framework, app, categories: new Set() });
     groups.get(key)!.categories.add(entry.category);
   }
 
@@ -347,9 +372,15 @@ async function main() {
   const meta = await getVersionInfo(config);
 
   console.log('=== Frontend Framework Benchmark Suite ===');
-  console.log(`Frameworks: ${Object.entries(meta.frameworks).map(([k, v]) => `${k}@${v}`).join(', ')}`);
+  console.log(
+    `Frameworks: ${Object.entries(meta.frameworks)
+      .map(([k, v]) => `${k}@${v}`)
+      .join(', ')}`,
+  );
   console.log(`Browser: ${meta.chromeVersion}`);
-  console.log(`Rounds: ${config.rounds}, Warmup/round: ${config.warmup}, Reduced: ${config.reduced}`);
+  console.log(
+    `Rounds: ${config.rounds}, Warmup/round: ${config.warmup}, Reduced: ${config.reduced}`,
+  );
 
   const pool: PooledSamples = {};
   const retried = new Set<string>();
@@ -359,7 +390,9 @@ async function main() {
   // Variance check — run one extra pooled round for high-variance categories
   const initialFailures = findHighVarianceMetrics(results, config);
   if (initialFailures.length > 0) {
-    console.warn(`\n${initialFailures.length} metric(s) exceeded their CV threshold — adding one extra round:`);
+    console.warn(
+      `\n${initialFailures.length} metric(s) exceeded their CV threshold — adding one extra round:`,
+    );
     logVarianceWarnings(initialFailures);
     await retryHighVarianceMetrics(initialFailures, pool, retried, config);
     results = finalize(pool, values, retried);

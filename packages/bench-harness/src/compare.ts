@@ -15,7 +15,9 @@ function valueOf(r: BenchmarkResult): number | undefined {
  * "different" only when the Mann-Whitney U test rejects equality at α = 0.05
  * AND the medians differ by at least 2% (lower is better for every metric).
  */
-export function compareFrameworks(results: FullBenchmarkResults['results']): Record<string, Comparison[]> {
+export function compareFrameworks(
+  results: FullBenchmarkResults['results'],
+): Record<string, Comparison[]> {
   const frameworks = Object.keys(results);
   const metrics = new Set(frameworks.flatMap((fw) => Object.keys(results[fw])));
   const out: Record<string, Comparison[]> = {};

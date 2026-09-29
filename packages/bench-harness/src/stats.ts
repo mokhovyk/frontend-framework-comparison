@@ -105,7 +105,9 @@ export function computeStats(runs: number[]): StatResult {
 function normalCdf(z: number): number {
   const x = Math.abs(z) / Math.SQRT2;
   const t = 1 / (1 + 0.3275911 * x);
-  const poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  const poly =
+    t *
+    (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
   const erf = 1 - poly * Math.exp(-x * x);
   return z >= 0 ? 0.5 * (1 + erf) : 0.5 * (1 - erf);
 }
@@ -119,7 +121,9 @@ export function mannWhitneyU(a: number[], b: number[]): { u: number; pValue: num
   const n2 = b.length;
   if (n1 === 0 || n2 === 0) return { u: 0, pValue: 1 };
 
-  const all = [...a.map((v) => ({ v, g: 0 })), ...b.map((v) => ({ v, g: 1 }))].sort((x, y) => x.v - y.v);
+  const all = [...a.map((v) => ({ v, g: 0 })), ...b.map((v) => ({ v, g: 1 }))].sort(
+    (x, y) => x.v - y.v,
+  );
   const n = all.length;
   const ranks = new Array<number>(n);
   let tieTerm = 0;

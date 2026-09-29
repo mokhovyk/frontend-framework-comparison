@@ -17,10 +17,17 @@ interface TableSnapshot {
 }
 
 /** Call a table hook, then snapshot the DOM in the same task. */
-async function tableHook(page: Page, op: string, args: unknown[] = [], rows: number[] = []): Promise<TableSnapshot> {
+async function tableHook(
+  page: Page,
+  op: string,
+  args: unknown[] = [],
+  rows: number[] = [],
+): Promise<TableSnapshot> {
   return page.evaluate(
     async ({ op, args, rows }) => {
-      const bm = (window as unknown as { __benchmark: Record<string, (...a: unknown[]) => unknown> }).__benchmark;
+      const bm = (
+        window as unknown as { __benchmark: Record<string, (...a: unknown[]) => unknown> }
+      ).__benchmark;
       await bm[op](...args);
       const trs = [...document.querySelectorAll('.data-table tbody tr')];
       return {
@@ -28,7 +35,12 @@ async function tableHook(page: Page, op: string, args: unknown[] = [], rows: num
         rowCount: bm['getRowCount']() as number,
         selected: trs.flatMap((tr, i) => (tr.classList.contains('selected') ? [i] : [])),
         cells: Object.fromEntries(
-          rows.map((i) => [i, trs[i] ? [...trs[i].querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '') : null]),
+          rows.map((i) => [
+            i,
+            trs[i]
+              ? [...trs[i].querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '')
+              : null,
+          ]),
         ),
       };
     },
@@ -50,7 +62,11 @@ test.describe('Table benchmark hooks', () => {
     const s = await tableHook(page, 'createRows', [1000], [0, 999]);
     expect(s.count).toBe(1000);
     expect(s.rowCount).toBe(1000);
-    expect(s.cells[0]?.slice(0, 3)).toEqual([String(expected[0].id), expected[0].firstName, expected[0].lastName]);
+    expect(s.cells[0]?.slice(0, 3)).toEqual([
+      String(expected[0].id),
+      expected[0].firstName,
+      expected[0].lastName,
+    ]);
     expect(s.cells[999]?.[ID]).toBe('1000');
   });
 
@@ -116,7 +132,9 @@ test.describe('Nested tree benchmark hooks', () => {
 
   test('mount/unmount commit before resolving and are not batched away', async ({ page }) => {
     const counts = await page.evaluate(async () => {
-      const bm = (window as unknown as { __benchmark: Record<string, (...a: unknown[]) => unknown> }).__benchmark;
+      const bm = (
+        window as unknown as { __benchmark: Record<string, (...a: unknown[]) => unknown> }
+      ).__benchmark;
       const count = () => document.querySelectorAll('#lifecycle-container [data-level]').length;
       const seen: number[] = [];
       await bm['mountComponents'](1000);
@@ -143,7 +161,8 @@ test.describe('Nested tree benchmark hooks', () => {
   test('toggleTheme reaches all 50 levels before resolving', async ({ page }) => {
     const counts = await page.evaluate(async () => {
       const bm = (window as unknown as { __benchmark: Record<string, () => unknown> }).__benchmark;
-      const count = (t: string) => document.querySelectorAll(`[data-level].${t}, [data-level][data-theme="${t}"]`).length;
+      const count = (t: string) =>
+        document.querySelectorAll(`[data-level].${t}, [data-level][data-theme="${t}"]`).length;
       const before = { dark: count('dark'), light: count('light') };
       await bm['toggleTheme']();
       return { before, after: { dark: count('dark'), light: count('light') } };

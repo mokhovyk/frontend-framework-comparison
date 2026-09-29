@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "main": "base.css",
-  "files": ["*.css"],
+  "files": [
+    "*.css"
+  ],
   "scripts": {
     "build": "echo 'CSS package — no build needed'"
   }

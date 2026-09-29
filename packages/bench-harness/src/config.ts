@@ -1,4 +1,11 @@
-export type MetricCategory = 'bundle' | 'build' | 'loading' | 'rendering' | 'memory' | 'reactivity' | 'lifecycle';
+export type MetricCategory =
+  | 'bundle'
+  | 'build'
+  | 'loading'
+  | 'rendering'
+  | 'memory'
+  | 'reactivity'
+  | 'lifecycle';
 
 /** Measured sample counts per suite (summed across all rounds). */
 export interface SuiteRuns {
@@ -53,12 +60,12 @@ const isReduced = process.env['BENCHMARK_REDUCED'] === 'true';
 
 const defaultCvThresholds: Record<MetricCategory, number> = {
   bundle: 0.02,
-  build: 0.10,
+  build: 0.1,
   loading: 0.15,
   rendering: 0.12,
   memory: 0.25,
   reactivity: 0.12,
-  lifecycle: 0.20,
+  lifecycle: 0.2,
 };
 
 export const defaultConfig: BenchmarkConfig = {
@@ -94,14 +101,33 @@ export const defaultConfig: BenchmarkConfig = {
 };
 
 const metricPrefixToCategory: Record<string, MetricCategory> = {
-  B1: 'bundle', B2: 'bundle', B3: 'bundle',
+  B1: 'bundle',
+  B2: 'bundle',
+  B3: 'bundle',
   B5: 'build',
-  L1: 'loading', L2: 'loading', L3: 'loading', L4: 'loading', L5: 'loading',
-  R1: 'rendering', R2: 'rendering', R3: 'rendering', R4: 'rendering',
-  R5: 'rendering', R6: 'rendering', R7: 'rendering', R8: 'rendering', R9: 'rendering',
-  M1: 'memory', M2: 'memory', M3: 'memory', M4: 'memory',
-  S1: 'reactivity', S3: 'reactivity',
-  C1: 'lifecycle', C2: 'lifecycle', C3: 'lifecycle',
+  L1: 'loading',
+  L2: 'loading',
+  L3: 'loading',
+  L4: 'loading',
+  L5: 'loading',
+  R1: 'rendering',
+  R2: 'rendering',
+  R3: 'rendering',
+  R4: 'rendering',
+  R5: 'rendering',
+  R6: 'rendering',
+  R7: 'rendering',
+  R8: 'rendering',
+  R9: 'rendering',
+  M1: 'memory',
+  M2: 'memory',
+  M3: 'memory',
+  M4: 'memory',
+  S1: 'reactivity',
+  S3: 'reactivity',
+  C1: 'lifecycle',
+  C2: 'lifecycle',
+  C3: 'lifecycle',
 };
 
 export function getMetricCategory(metricKey: string): MetricCategory | undefined {
@@ -111,9 +137,10 @@ export function getMetricCategory(metricKey: string): MetricCategory | undefined
 
 export function getCvThreshold(metricKey: string, config: BenchmarkConfig): number {
   const category = getMetricCategory(metricKey);
-  let threshold = (category && config.cvThresholds[category] !== undefined)
-    ? config.cvThresholds[category]
-    : config.cvThreshold;
+  let threshold =
+    category && config.cvThresholds[category] !== undefined
+      ? config.cvThresholds[category]
+      : config.cvThreshold;
 
   // Fewer runs in reduced mode → higher natural variance (√25/√10 ≈ 1.58)
   if (config.reduced) {
@@ -142,7 +169,8 @@ function intEnv(name: string): number | undefined {
   const v = process.env[name];
   if (!v) return undefined;
   const n = parseInt(v, 10);
-  if (!Number.isFinite(n) || n < 1) throw new Error(`${name} must be a positive integer, got "${v}"`);
+  if (!Number.isFinite(n) || n < 1)
+    throw new Error(`${name} must be a positive integer, got "${v}"`);
   return n;
 }
 

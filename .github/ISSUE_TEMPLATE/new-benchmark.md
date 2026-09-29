@@ -1,7 +1,7 @@
 ---
 name: New Benchmark
 about: Propose a new benchmark metric or test application
-title: "[Benchmark] "
+title: '[Benchmark] '
 labels: enhancement, benchmark
 ---
 

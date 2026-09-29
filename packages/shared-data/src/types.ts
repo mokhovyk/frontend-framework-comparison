@@ -19,9 +19,9 @@ export interface DataPoint {
 }
 
 export interface DashboardBatch {
-  lineCharts: DataPoint[][];   // 4 line chart updates
-  barCharts: number[][];       // 4 bar chart updates
-  kpis: KpiUpdate[];           // 2 KPI updates
+  lineCharts: DataPoint[][]; // 4 line chart updates
+  barCharts: number[][]; // 4 bar chart updates
+  kpis: KpiUpdate[]; // 2 KPI updates
   tableRows: TableRowUpdate[]; // 5 row updates
   statusCells: StatusUpdate[]; // 10 status updates
 }
@@ -44,14 +44,7 @@ export interface StatusUpdate {
 
 // === Form Types ===
 
-export type FieldType =
-  | 'text'
-  | 'select'
-  | 'checkbox'
-  | 'radio'
-  | 'date'
-  | 'textarea'
-  | 'file';
+export type FieldType = 'text' | 'select' | 'checkbox' | 'radio' | 'date' | 'textarea' | 'file';
 
 export interface ValidationRule {
   type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'custom';

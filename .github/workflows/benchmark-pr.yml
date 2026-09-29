@@ -7,6 +7,13 @@ name: Benchmark (PR)
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
 
 permissions:
   contents: read
@@ -49,8 +56,10 @@ jobs:
           file: base/docker/Dockerfile
           tags: bench:base
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=bench-pr-base
+            type=gha,scope=bench-main
+          cache-to: type=gha,scope=bench-pr-base,mode=max
 
       - name: Build head image
         uses: docker/build-push-action@v6
@@ -59,8 +68,10 @@ jobs:
           file: head/docker/Dockerfile
           tags: bench:head
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=bench-pr-head
+            type=gha,scope=bench-main
+          cache-to: type=gha,scope=bench-pr-head,mode=max
 
       - name: Run base (reduced)
         continue-on-error: true

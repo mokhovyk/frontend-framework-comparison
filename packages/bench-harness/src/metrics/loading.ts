@@ -122,7 +122,9 @@ export async function measureLoading(
 
       const state = await page.evaluate(() => {
         const s = (window as unknown as { __perf: PerfState }).__perf;
-        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+        const nav = performance.getEntriesByType('navigation')[0] as
+          | PerformanceNavigationTiming
+          | undefined;
         return { ...s, domContentLoaded: nav?.domContentLoadedEventEnd ?? 0 };
       });
 
@@ -132,7 +134,11 @@ export async function measureLoading(
         missingFcp++;
         continue; // TTI/TBT are defined relative to FCP
       }
-      const { tti, tbt, bootBlocking } = computeTtiTbt(state.fcp, state.domContentLoaded, state.longTasks);
+      const { tti, tbt, bootBlocking } = computeTtiTbt(
+        state.fcp,
+        state.domContentLoaded,
+        state.longTasks,
+      );
       fcpRuns.push(state.fcp);
       ttiRuns.push(tti);
       tbtRuns.push(tbt);
@@ -144,8 +150,10 @@ export async function measureLoading(
     }
   }
 
-  if (missingFcp > 0) console.warn(`      Loading: ${missingFcp} run(s) had no FCP entry and were dropped`);
-  if (missingLcp > 0) console.warn(`      L2_lcp: ${missingLcp} run(s) had no LCP entry and were dropped`);
+  if (missingFcp > 0)
+    console.warn(`      Loading: ${missingFcp} run(s) had no FCP entry and were dropped`);
+  if (missingLcp > 0)
+    console.warn(`      L2_lcp: ${missingLcp} run(s) had no LCP entry and were dropped`);
 
   return {
     L1_fcp: { unit: 'ms', runs: fcpRuns },

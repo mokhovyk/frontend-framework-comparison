@@ -1,7 +1,7 @@
 ---
 name: Framework Update
 about: Report a new framework version or request a framework addition
-title: "[Framework] "
+title: '[Framework] '
 labels: framework
 ---
 

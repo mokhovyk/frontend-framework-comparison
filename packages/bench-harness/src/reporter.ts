@@ -103,7 +103,7 @@ export function statToResult(stat: StatResult, unit: string): BenchmarkResult {
  */
 export async function insertIntoSQLite(
   results: FullBenchmarkResults,
-  dbPath: string
+  dbPath: string,
 ): Promise<void> {
   try {
     const Database = (await import('better-sqlite3')).default;
@@ -149,7 +149,7 @@ export async function insertIntoSQLite(
             result.p5 ?? null,
             result.p95 ?? null,
             result.unit,
-            result.cv ?? null
+            result.cv ?? null,
           );
         }
       }

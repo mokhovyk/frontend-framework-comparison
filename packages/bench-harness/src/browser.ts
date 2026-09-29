@@ -84,9 +84,7 @@ export async function navigateToApp(ctx: BrowserContext, url: string): Promise<v
     await waitForHooks(ctx.page);
   } catch (err) {
     if (pageErrors.length > 0) {
-      throw new Error(
-        `${(err as Error).message} — page errors: ${pageErrors.join('; ')}`
-      );
+      throw new Error(`${(err as Error).message} — page errors: ${pageErrors.join('; ')}`);
     }
     throw err;
   } finally {
@@ -101,7 +99,9 @@ export async function navigateToApp(ctx: BrowserContext, url: string): Promise<v
 export async function callHook(page: Page, op: string, args: unknown[] = []): Promise<void> {
   await page.evaluate(
     async ([o, a]) => {
-      const bm = (window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }).__benchmark;
+      const bm = (
+        window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }
+      ).__benchmark;
       await bm[o](...a);
     },
     [op, args] as [string, unknown[]],
@@ -116,7 +116,9 @@ export async function callHook(page: Page, op: string, args: unknown[] = []): Pr
 export async function timeHook(page: Page, op: string, args: unknown[] = []): Promise<number> {
   return page.evaluate(
     async ([o, a]) => {
-      const bm = (window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }).__benchmark;
+      const bm = (
+        window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }
+      ).__benchmark;
       const start = performance.now();
       await bm[o](...a);
       await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));

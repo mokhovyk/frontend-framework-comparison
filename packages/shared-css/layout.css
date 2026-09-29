@@ -30,7 +30,9 @@
 .sidebar nav a {
   padding: 8px 16px;
   color: var(--color-text-secondary);
-  transition: background var(--transition), color var(--transition);
+  transition:
+    background var(--transition),
+    color var(--transition);
 }
 
 .sidebar nav a:hover {
@@ -93,8 +95,13 @@
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Page Header */

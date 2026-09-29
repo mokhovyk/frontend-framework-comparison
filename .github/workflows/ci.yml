@@ -30,26 +30,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
-
-      # Builds every package and app (tsc / ng build type-check as they go)
-      - name: Build all
-        run: pnpm build:all
-
-      - name: Type-check React and Vue apps
-        run: pnpm typecheck
-
-      - name: Harness unit tests
-        run: pnpm test:unit
-
-      - name: Install Playwright Chromium
-        run: pnpm --filter parity-tests exec playwright install --with-deps chromium
-
-      - name: Parity tests
-        run: pnpm test:parity
-        env:
-          CI: 'true'
+      - uses: ./.github/actions/verify
 
       - name: Upload Playwright report
         if: failure()

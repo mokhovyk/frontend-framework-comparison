@@ -3,3 +3,7 @@ node_modules/
 results/
 .angular/
 pnpm-lock.yaml
+
+# App source is what gets benchmarked; reformatting templates can change
+# whitespace text nodes in the rendered DOM. Keep it out of bulk formatting.
+frameworks/*/apps/

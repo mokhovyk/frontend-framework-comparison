@@ -53,9 +53,10 @@ export function startStaticServer(rootDir: string, port: number): Promise<Static
     server.listen(port, '127.0.0.1', () => {
       resolve({
         port,
-        close: () => new Promise<void>((res, rej) => {
-          server.close((err) => (err ? rej(err) : res()));
-        }),
+        close: () =>
+          new Promise<void>((res, rej) => {
+            server.close((err) => (err ? rej(err) : res()));
+          }),
       });
     });
   });

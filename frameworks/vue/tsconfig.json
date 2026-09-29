@@ -10,10 +10,6 @@
     },
     "types": ["vite/client"]
   },
-  "include": [
-    "env.d.ts",
-    "apps/**/*.ts",
-    "apps/**/*.vue"
-  ],
+  "include": ["env.d.ts", "apps/**/*.ts", "apps/**/*.vue"],
   "exclude": ["node_modules", "dist"]
 }
