@@ -27,16 +27,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # Only needed for report generation — the benchmark builds everything inside the image
       - name: Install dependencies
-        run: pnpm install
-
-      - name: Build shared packages
-        run: |
-          pnpm --filter shared-data build
-          pnpm --filter bench-harness build
-
-      - name: Build all framework apps
-        run: pnpm build:all
+        run: pnpm install --frozen-lockfile
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -57,15 +50,9 @@ jobs:
             -e BENCHMARK_RUNS=25 \
             -e BENCHMARK_WARMUP=5 \
             -e BENCHMARK_FAIL_ON_VARIANCE=false \
+            -e GIT_COMMIT=${{ github.sha }} \
             -v ${{ github.workspace }}/results:/app/results \
             bench:main
-
-      - name: Upload baseline for PR comparison
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-baseline
-          path: results/latest.json
-          overwrite: true
 
       - name: Fix results directory permissions
         run: sudo chown -R $(id -u):$(id -g) results
@@ -81,6 +68,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add results/latest.json results/archive/ || true
           git diff --staged --quiet || git commit -m "chore: update benchmark results [skip ci]"
+          git pull --rebase origin main
           git push
 
       - name: Deploy results site

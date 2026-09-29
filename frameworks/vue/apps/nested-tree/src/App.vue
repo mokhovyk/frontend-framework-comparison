@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, provide, onMounted } from 'vue';
+import { ref, provide, onMounted, nextTick } from 'vue';
+import type { NestedTreeBenchmarkHooks } from 'shared-data';
 import Level from './components/Level.vue';
 
 const theme = ref<'light' | 'dark'>('dark');
@@ -26,14 +27,16 @@ function toggleWideMode() {
 const maxDepth = ref(50);
 const computedMaxDepth = () => (wideMode.value ? 10 : maxDepth.value);
 
-// Benchmark hooks
+// Benchmark hooks — each resolves once the DOM is patched (see BenchmarkHooks contract)
 onMounted(() => {
-  const hooks = {
-    toggleTheme() {
+  const hooks: NestedTreeBenchmarkHooks & Record<string, unknown> = {
+    async toggleTheme() {
       toggleTheme();
+      await nextTick();
     },
-    incrementCounter() {
+    async incrementCounter() {
       increment();
+      await nextTick();
     },
     setCounter(val: number) {
       counter.value = val;
@@ -44,14 +47,17 @@ onMounted(() => {
     getTheme() {
       return theme.value;
     },
-    toggleWideMode() {
+    async toggleWideMode() {
       toggleWideMode();
+      await nextTick();
     },
-    mountComponents(n: number) {
+    async mountComponents(n: number) {
       lifecycleCount.value = n;
+      await nextTick();
     },
-    unmountComponents() {
+    async unmountComponents() {
       lifecycleCount.value = 0;
+      await nextTick();
     },
   };
   (window as unknown as Record<string, unknown>).__benchmark = hooks;

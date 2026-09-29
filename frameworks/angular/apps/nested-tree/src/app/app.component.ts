@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { ApplicationRef, Component, inject, signal, OnInit } from '@angular/core';
 import { LevelComponent } from './components/level/level.component';
 import { ThemeService } from './components/level/theme.service';
 import { CounterService } from './components/level/counter.service';
@@ -11,6 +11,7 @@ import { CounterService } from './components/level/counter.service';
   providers: [ThemeService, CounterService],
 })
 export class AppComponent implements OnInit {
+  private readonly appRef = inject(ApplicationRef);
   readonly wideMode = signal(false);
   readonly maxDepth = 50;
   readonly lifecycleCount = signal(0);
@@ -50,29 +51,19 @@ export class AppComponent implements OnInit {
   }
 
   private exposeBenchmarkHooks(): void {
-    const self = this;
+    // Each mutating hook runs change detection synchronously (see BenchmarkHooks contract).
+    const commit = (update: () => void) => {
+      update();
+      this.appRef.tick();
+    };
     (window as unknown as Record<string, unknown>)['__benchmark'] = {
-      toggleTheme() {
-        self.toggleTheme();
-      },
-      incrementCounter() {
-        self.increment();
-      },
-      getCounter() {
-        return self.counter();
-      },
-      getTheme() {
-        return self.theme();
-      },
-      toggleWideMode() {
-        self.toggleWideMode();
-      },
-      mountComponents(n: number) {
-        self.lifecycleCount.set(n);
-      },
-      unmountComponents() {
-        self.lifecycleCount.set(0);
-      },
+      toggleTheme: () => commit(() => this.toggleTheme()),
+      incrementCounter: () => commit(() => this.increment()),
+      getCounter: () => this.counter(),
+      getTheme: () => this.theme(),
+      toggleWideMode: () => commit(() => this.toggleWideMode()),
+      mountComponents: (n: number) => commit(() => this.lifecycleCount.set(n)),
+      unmountComponents: () => commit(() => this.lifecycleCount.set(0)),
     };
   }
 }

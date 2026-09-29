@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import { generateTableData } from 'shared-data';
+import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue';
+import { generateTableData, resolvePageSize, APPEND_ROWS_SEED, REPLACE_ROWS_SEED } from 'shared-data';
 import type { TableRow, BenchmarkHooks } from 'shared-data';
 import DataTable from './components/DataTable.vue';
 import Pagination from './components/Pagination.vue';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = resolvePageSize(50);
 
-const allRows = ref<TableRow[]>(generateTableData(10000));
+// shallowRef: rows are replaced immutably (like React state / Angular signals), so
+// deep proxies over 10k row objects would be pure overhead.
+const allRows = shallowRef<TableRow[]>(generateTableData(10000));
 const filterText = ref('');
 const debouncedFilter = ref('');
 const sortColumn = ref<keyof TableRow | null>(null);
@@ -41,8 +43,8 @@ const filteredRows = computed(() => {
 
 // Sorted rows
 const sortedRows = computed(() => {
+  if (!sortColumn.value || !sortDirection.value) return filteredRows.value;
   const rows = [...filteredRows.value];
-  if (!sortColumn.value || !sortDirection.value) return rows;
   const col = sortColumn.value;
   const dir = sortDirection.value === 'asc' ? 1 : -1;
   return rows.sort((a, b) => {
@@ -124,7 +126,9 @@ function handleCellEdit(rowId: number, column: keyof TableRow, value: string) {
   } else {
     (row as Record<string, unknown>)[column as string] = value;
   }
-  allRows.value[idx] = row;
+  const next = [...allRows.value];
+  next[idx] = row;
+  allRows.value = next;
   editingCell.value = null;
 }
 
@@ -149,53 +153,64 @@ function toggleActiveSelected() {
   );
 }
 
-// Benchmark hooks
+// Benchmark hooks — each resolves once the DOM is patched (see BenchmarkHooks contract)
 onMounted(() => {
+  const resetView = () => {
+    selectedIds.value = new Set();
+    lastSelectedIndex.value = null;
+    currentPage.value = 1;
+  };
   const hooks: BenchmarkHooks = {
-    createRows(count: number) {
+    async createRows(count: number) {
       allRows.value = generateTableData(count);
+      resetView();
+      await nextTick();
     },
-    updateEveryNthRow(n: number) {
+    async updateEveryNthRow(n: number) {
       allRows.value = allRows.value.map((row, i) =>
         i % n === 0 ? { ...row, lastName: row.lastName + ' !' } : row
       );
+      await nextTick();
     },
-    replaceAllRows() {
-      allRows.value = generateTableData(10000, 99);
+    async replaceAllRows() {
+      allRows.value = generateTableData(10000, REPLACE_ROWS_SEED);
+      resetView();
+      await nextTick();
     },
-    selectRow(index: number) {
-      if (index < allRows.value.length) {
-        const id = allRows.value[index].id;
-        selectedIds.value = new Set([id]);
-      }
+    async selectRow(index: number) {
+      const row = allRows.value[index];
+      if (row) selectedIds.value = new Set([row.id]);
+      await nextTick();
     },
-    swapRows(a: number, b: number) {
+    async swapRows(a: number, b: number) {
       const rows = [...allRows.value];
-      if (a < rows.length && b < rows.length) {
+      if (a >= 0 && b >= 0 && a < rows.length && b < rows.length) {
         [rows[a], rows[b]] = [rows[b], rows[a]];
         allRows.value = rows;
       }
+      await nextTick();
     },
-    removeRow(index: number) {
-      if (index < allRows.value.length) {
+    async removeRow(index: number) {
+      if (index >= 0 && index < allRows.value.length) {
         const rows = [...allRows.value];
         rows.splice(index, 1);
         allRows.value = rows;
       }
+      await nextTick();
     },
-    clearRows() {
+    async clearRows() {
       allRows.value = [];
-      selectedIds.value = new Set();
+      resetView();
+      await nextTick();
     },
-    appendRows(count: number) {
-      const maxId = allRows.value.length > 0
-        ? Math.max(...allRows.value.map((r) => r.id))
-        : 0;
-      const newRows = generateTableData(count, 123).map((r, i) => ({
+    async appendRows(count: number) {
+      const maxId = allRows.value.reduce((max, r) => Math.max(max, r.id), 0);
+      const newRows = generateTableData(count, APPEND_ROWS_SEED).map((r, i) => ({
         ...r,
         id: maxId + i + 1,
       }));
       allRows.value = [...allRows.value, ...newRows];
+      await nextTick();
     },
     getRowCount() {
       return allRows.value.length;

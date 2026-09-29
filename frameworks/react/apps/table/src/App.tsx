@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { generateTableData } from 'shared-data';
-import type { TableRow } from 'shared-data';
+import { flushSync } from 'react-dom';
+import { generateTableData, resolvePageSize, APPEND_ROWS_SEED, REPLACE_ROWS_SEED } from 'shared-data';
+import type { TableRow, BenchmarkHooks } from 'shared-data';
 import DataTable from './components/DataTable';
 import Pagination from './components/Pagination';
 
@@ -18,7 +19,7 @@ interface EditingCell {
   value: string;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = resolvePageSize(50);
 
 export default function App() {
   const [rows, setRows] = useState<TableRow[]>(() => generateTableData(10000));
@@ -29,7 +30,7 @@ export default function App() {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const lastSelectedIndexRef = useRef<number | null>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Debounced filter
   const handleFilterChange = useCallback((value: string) => {
@@ -165,72 +166,78 @@ export default function App() {
     );
   }, [selectedIds]);
 
-  // Benchmark hooks
+  // Benchmark hooks — each commits synchronously (see BenchmarkHooks contract)
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
   useEffect(() => {
-    const hooks = {
-      createRows: (count: number) => {
-        setRows(generateTableData(count));
-        setSelectedIds(new Set());
-        setCurrentPage(1);
-      },
-      updateEveryNthRow: (n: number) => {
-        setRows((prev) =>
-          prev.map((r, i) =>
-            i % n === 0 ? { ...r, lastName: r.lastName + ' !' } : r
-          )
-        );
-      },
-      replaceAllRows: () => {
-        setRows(generateTableData(10000, 99));
-        setSelectedIds(new Set());
-        setCurrentPage(1);
-      },
-      selectRow: (index: number) => {
-        setRows((prev) => {
-          if (index >= 0 && index < prev.length) {
-            setSelectedIds(new Set([prev[index].id]));
-          }
-          return prev;
-        });
-      },
-      swapRows: (a: number, b: number) => {
-        setRows((prev) => {
-          if (a < 0 || b < 0 || a >= prev.length || b >= prev.length) return prev;
-          const next = [...prev];
-          [next[a], next[b]] = [next[b], next[a]];
-          return next;
-        });
-      },
-      removeRow: (index: number) => {
-        setRows((prev) => {
-          if (index < 0 || index >= prev.length) return prev;
-          const next = [...prev];
-          next.splice(index, 1);
-          return next;
-        });
-      },
-      clearRows: () => {
-        setRows([]);
-        setSelectedIds(new Set());
-        setCurrentPage(1);
-      },
-      appendRows: (count: number) => {
-        setRows((prev) => {
-          const maxId = prev.reduce((max, r) => Math.max(max, r.id), 0);
-          const newRows = generateTableData(count, maxId).map((r, i) => ({
-            ...r,
-            id: maxId + i + 1,
-          }));
-          return [...prev, ...newRows];
-        });
-      },
-      getRowCount: () => rows.length,
+    const resetView = () => {
+      setSelectedIds(new Set());
+      setCurrentPage(1);
+    };
+    const hooks: BenchmarkHooks = {
+      createRows: (count) =>
+        flushSync(() => {
+          setRows(generateTableData(count));
+          resetView();
+        }),
+      updateEveryNthRow: (n) =>
+        flushSync(() => {
+          setRows((prev) =>
+            prev.map((r, i) => (i % n === 0 ? { ...r, lastName: r.lastName + ' !' } : r))
+          );
+        }),
+      replaceAllRows: () =>
+        flushSync(() => {
+          setRows(generateTableData(10000, REPLACE_ROWS_SEED));
+          resetView();
+        }),
+      selectRow: (index) =>
+        flushSync(() => {
+          const row = rowsRef.current[index];
+          if (row) setSelectedIds(new Set([row.id]));
+        }),
+      swapRows: (a, b) =>
+        flushSync(() => {
+          setRows((prev) => {
+            if (a < 0 || b < 0 || a >= prev.length || b >= prev.length) return prev;
+            const next = [...prev];
+            [next[a], next[b]] = [next[b], next[a]];
+            return next;
+          });
+        }),
+      removeRow: (index) =>
+        flushSync(() => {
+          setRows((prev) => {
+            if (index < 0 || index >= prev.length) return prev;
+            const next = [...prev];
+            next.splice(index, 1);
+            return next;
+          });
+        }),
+      clearRows: () =>
+        flushSync(() => {
+          setRows([]);
+          resetView();
+        }),
+      appendRows: (count) =>
+        flushSync(() => {
+          setRows((prev) => {
+            const maxId = prev.reduce((max, r) => Math.max(max, r.id), 0);
+            const newRows = generateTableData(count, APPEND_ROWS_SEED).map((r, i) => ({
+              ...r,
+              id: maxId + i + 1,
+            }));
+            return [...prev, ...newRows];
+          });
+        }),
+      getRowCount: () => rowsRef.current.length,
     };
     (window as unknown as Record<string, unknown>).__benchmark = hooks;
     return () => {
       delete (window as unknown as Record<string, unknown>).__benchmark;
     };
-  }, [rows.length]);
+  }, []);
 
   return (
     <div style={{ padding: '16px' }}>

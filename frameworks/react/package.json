@@ -19,7 +19,8 @@
     "preview:nested-tree": "APP=nested-tree vite preview",
     "preview:dashboard": "APP=dashboard vite preview",
     "preview:form": "APP=form vite preview",
-    "preview:router": "APP=router vite preview"
+    "preview:router": "APP=router vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^19.3.0",

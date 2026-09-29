@@ -9,6 +9,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "bench-harness": "workspace:*",
+    "shared-data": "workspace:*",
     "typescript": "^5.7.0"
   }
 }

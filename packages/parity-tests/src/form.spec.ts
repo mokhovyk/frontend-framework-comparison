@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './helpers.js';
 
 test.describe('Form App Parity', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, 'form');
   });
 
   test('renders 30 form fields', async ({ page }) => {

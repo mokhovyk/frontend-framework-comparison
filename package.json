@@ -2,7 +2,8 @@
   "name": "frontend-framework-comparison",
   "version": "1.0.0",
   "private": true,
-  "description": "Frontend Framework Benchmark Suite — React, Angular, Vue",
+  "type": "module",
+  "description": "Frontend Framework Benchmark Suite - React, Angular, Vue",
   "license": "MIT",
   "engines": {
     "node": ">=22",
@@ -13,6 +14,8 @@
     "build:all": "bash scripts/build-all.sh",
     "benchmark": "bash scripts/benchmark.sh",
     "test:parity": "pnpm --filter parity-tests test",
+    "test:unit": "pnpm --filter bench-harness test",
+    "typecheck": "pnpm --filter react-benchmarks typecheck && pnpm --filter framework-vue typecheck",
     "report": "pnpm --filter results-site generate",
     "lint": "eslint .",
     "format": "prettier --write .",

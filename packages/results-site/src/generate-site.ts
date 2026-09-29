@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { generateChartSpecs, toVegaLiteSpec } from './generate-charts.js';
 import { generateMarkdownTable } from './generate-readme.js';
 

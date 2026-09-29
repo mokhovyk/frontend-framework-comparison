@@ -33,14 +33,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build shared packages
-        run: |
-          pnpm --filter shared-data build
-          pnpm --filter bench-harness build
-
-      - name: Build all framework apps
-        run: pnpm build:all
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -60,6 +52,7 @@ jobs:
             -e BENCHMARK_RUNS=25 \
             -e BENCHMARK_WARMUP=5 \
             -e BENCHMARK_FAIL_ON_VARIANCE=false \
+            -e GIT_COMMIT=${{ github.sha }} \
             -v ${{ github.workspace }}/results:/app/results \
             bench:weekly
 
@@ -75,14 +68,9 @@ jobs:
         run: |
           echo "Framework versions used in this run:" >> $GITHUB_STEP_SUMMARY
           node -e "
-            const p = require;
-            const fws = ['react', 'angular', 'vue'];
-            for (const fw of fws) {
-              try {
-                const pkg = require('./frameworks/' + fw + '/node_modules/' + (fw === 'angular' ? '@angular/core' : fw) + '/package.json');
-                console.log(fw + ': ' + pkg.version);
-              } catch { console.log(fw + ': unknown'); }
-            }
+            const meta = JSON.parse(require('fs').readFileSync('results/latest.json', 'utf8')).meta;
+            for (const [fw, v] of Object.entries(meta.frameworks)) console.log('- ' + fw + ': ' + v);
+            console.log('- browser: ' + meta.chromeVersion);
           " >> $GITHUB_STEP_SUMMARY
 
       - name: Commit results and version updates
@@ -91,4 +79,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add results/ pnpm-lock.yaml frameworks/*/package.json || true
           git diff --staged --quiet || git commit -m "chore: weekly benchmark run with latest framework versions"
+          git pull --rebase origin main
           git push

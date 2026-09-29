@@ -1,10 +1,11 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { type TableRow } from 'shared-data';
 
 @Component({
   selector: 'app-data-table',
   standalone: true,
   templateUrl: './data-table.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DataTableComponent {
   readonly rows = input.required<TableRow[]>();

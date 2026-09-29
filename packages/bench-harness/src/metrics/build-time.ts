@@ -1,38 +1,19 @@
 import { execSync } from 'node:child_process';
-import { computeStats } from '../stats.js';
-import { statToResult, type BenchmarkResult } from '../reporter.js';
-import type { BenchmarkConfig } from '../config.js';
 
 /**
- * Measure build times: dev build, production build, incremental (HMR).
+ * One cold production build of `app` for `framework`, in ms (B5).
+ * Build caches are cleared first. The runner interleaves frameworks run by run
+ * and discards a warm-up build per framework (cold OS file cache).
  */
-export async function measureBuildTime(
-  framework: string,
-  app: string,
-  config: BenchmarkConfig,
-): Promise<Record<string, BenchmarkResult>> {
-  const results: Record<string, BenchmarkResult> = {};
+export function measureBuildOnce(framework: string, app: string): number {
   const cwd = `frameworks/${framework}`;
-  const buildRuns = config.reduced ? 5 : 10;
+  execSync(`rm -rf node_modules/.cache node_modules/.vite dist/${app} .angular/cache .vite`, {
+    cwd,
+    stdio: 'ignore',
+  });
 
-  // B5: Production build time
-  console.log(`    B5: Production build time...`);
-  const prodRuns: number[] = [];
-  for (let i = 0; i < buildRuns; i++) {
-    // Clear caches
-    try {
-      execSync(`rm -rf node_modules/.cache dist/${app} .angular/cache .vite`, {
-        cwd,
-        stdio: 'ignore',
-      });
-    } catch { /* ok if dirs don't exist */ }
-
-    const start = process.hrtime.bigint();
-    execSync(`pnpm run build:${app}`, { cwd, stdio: 'ignore' });
-    const end = process.hrtime.bigint();
-    prodRuns.push(Number(end - start) / 1e6); // ns → ms
-  }
-  results['B5_prod_build'] = statToResult(computeStats(prodRuns), 'ms');
-
-  return results;
+  const start = process.hrtime.bigint();
+  execSync(`pnpm run build:${app}`, { cwd, stdio: 'ignore' });
+  const end = process.hrtime.bigint();
+  return Number(end - start) / 1e6; // ns → ms
 }

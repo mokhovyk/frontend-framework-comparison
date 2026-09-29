@@ -1,7 +1,14 @@
-import { Component, signal, computed, effect, OnInit } from '@angular/core';
+import { ApplicationRef, Component, inject, signal, computed, effect, OnInit } from '@angular/core';
 import { DataTableComponent } from './components/data-table/data-table.component';
 import { PaginationComponent } from './components/pagination/pagination.component';
-import { generateTableData, type TableRow, type BenchmarkHooks } from 'shared-data';
+import {
+  generateTableData,
+  resolvePageSize,
+  APPEND_ROWS_SEED,
+  REPLACE_ROWS_SEED,
+  type TableRow,
+  type BenchmarkHooks,
+} from 'shared-data';
 
 type SortDirection = 'asc' | 'desc' | 'none';
 
@@ -23,12 +30,13 @@ declare global {
   templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
+  private readonly appRef = inject(ApplicationRef);
   private allRows = signal<TableRow[]>([]);
 
   readonly filterText = signal('');
   readonly sortState = signal<SortState>({ column: null, direction: 'none' });
   readonly currentPage = signal(1);
-  readonly pageSize = 50;
+  readonly pageSize = resolvePageSize(50);
   readonly selectedIds = signal<Set<number>>(new Set());
   readonly lastClickedIndex = signal<number | null>(null);
   readonly editingCell = signal<{ rowId: number; column: keyof TableRow } | null>(null);
@@ -50,11 +58,10 @@ export class AppComponent implements OnInit {
   });
 
   readonly sortedRows = computed(() => {
-    const rows = [...this.filteredRows()];
     const { column, direction } = this.sortState();
-    if (!column || direction === 'none') return rows;
+    if (!column || direction === 'none') return this.filteredRows();
 
-    return rows.sort((a, b) => {
+    return [...this.filteredRows()].sort((a, b) => {
       const aVal = a[column];
       const bVal = b[column];
       let cmp: number;
@@ -88,7 +95,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.allRows.set(generateTableData(10000, 42));
+    this.allRows.set(generateTableData(10000));
     this.exposeBenchmarkHooks();
   }
 
@@ -189,60 +196,73 @@ export class AppComponent implements OnInit {
   }
 
   private exposeBenchmarkHooks(): void {
-    const self = this;
+    // Each hook runs change detection synchronously (see BenchmarkHooks contract).
+    const commit = (update: () => void) => {
+      update();
+      this.appRef.tick();
+    };
+    const resetView = () => {
+      this.selectedIds.set(new Set());
+      this.lastClickedIndex.set(null);
+      this.currentPage.set(1);
+    };
     window.__benchmark = {
-      createRows(count: number) {
-        self.allRows.set(generateTableData(count, 42));
-      },
-      updateEveryNthRow(n: number) {
-        self.allRows.update((rows) =>
-          rows.map((r, i) => (i % n === 0 ? { ...r, lastName: r.lastName + '!' } : r))
-        );
-      },
-      replaceAllRows() {
-        self.allRows.set(generateTableData(10000, 99));
-      },
-      selectRow(index: number) {
-        const rows = self.allRows();
-        if (rows[index]) {
-          const selected = new Set(self.selectedIds());
-          if (selected.has(rows[index].id)) {
-            selected.delete(rows[index].id);
-          } else {
-            selected.add(rows[index].id);
-          }
-          self.selectedIds.set(selected);
-        }
-      },
-      swapRows(a: number, b: number) {
-        self.allRows.update((rows) => {
-          const newRows = [...rows];
-          [newRows[a], newRows[b]] = [newRows[b], newRows[a]];
-          return newRows;
-        });
-      },
-      removeRow(index: number) {
-        self.allRows.update((rows) => {
-          const newRows = [...rows];
-          newRows.splice(index, 1);
-          return newRows;
-        });
-      },
-      clearRows() {
-        self.allRows.set([]);
-      },
-      appendRows(count: number) {
-        const existing = self.allRows();
-        const maxId = existing.reduce((max, r) => Math.max(max, r.id), 0);
-        const newRows = generateTableData(count, 77).map((r, i) => ({
-          ...r,
-          id: maxId + i + 1,
-        }));
-        self.allRows.update((rows) => [...rows, ...newRows]);
-      },
-      getRowCount() {
-        return self.allRows().length;
-      },
+      createRows: (count: number) =>
+        commit(() => {
+          this.allRows.set(generateTableData(count));
+          resetView();
+        }),
+      updateEveryNthRow: (n: number) =>
+        commit(() =>
+          this.allRows.update((rows) =>
+            rows.map((r, i) => (i % n === 0 ? { ...r, lastName: r.lastName + ' !' } : r))
+          )
+        ),
+      replaceAllRows: () =>
+        commit(() => {
+          this.allRows.set(generateTableData(10000, REPLACE_ROWS_SEED));
+          resetView();
+        }),
+      selectRow: (index: number) =>
+        commit(() => {
+          const row = this.allRows()[index];
+          if (row) this.selectedIds.set(new Set([row.id]));
+        }),
+      swapRows: (a: number, b: number) =>
+        commit(() =>
+          this.allRows.update((rows) => {
+            if (a < 0 || b < 0 || a >= rows.length || b >= rows.length) return rows;
+            const newRows = [...rows];
+            [newRows[a], newRows[b]] = [newRows[b], newRows[a]];
+            return newRows;
+          })
+        ),
+      removeRow: (index: number) =>
+        commit(() =>
+          this.allRows.update((rows) => {
+            if (index < 0 || index >= rows.length) return rows;
+            const newRows = [...rows];
+            newRows.splice(index, 1);
+            return newRows;
+          })
+        ),
+      clearRows: () =>
+        commit(() => {
+          this.allRows.set([]);
+          resetView();
+        }),
+      appendRows: (count: number) =>
+        commit(() =>
+          this.allRows.update((rows) => {
+            const maxId = rows.reduce((max, r) => Math.max(max, r.id), 0);
+            const newRows = generateTableData(count, APPEND_ROWS_SEED).map((r, i) => ({
+              ...r,
+              id: maxId + i + 1,
+            }));
+            return [...rows, ...newRows];
+          })
+        ),
+      getRowCount: () => this.allRows().length,
     };
   }
 }

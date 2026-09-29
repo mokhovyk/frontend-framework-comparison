@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './helpers.js';
 
 test.describe('Dashboard App Parity', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, 'dashboard');
   });
 
   test('renders 12 widgets', async ({ page }) => {

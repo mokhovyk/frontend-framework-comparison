@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { getRowCount, getColumnValues } from './helpers.js';
+import { gotoApp, getRowCount, getColumnValues } from './helpers.js';
 
 test.describe('Table App Parity', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, 'table');
   });
 
   test('renders correct number of rows per page', async ({ page }) => {

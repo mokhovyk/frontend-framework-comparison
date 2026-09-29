@@ -9,6 +9,8 @@ services:
       - ../results:/app/results
     environment:
       - NODE_ENV=production
+      # Recorded in results meta; e.g. GIT_COMMIT=$(git rev-parse HEAD) docker compose ...
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BENCHMARK_RUNS=25
       - BENCHMARK_WARMUP=5
     command: ["pnpm", "run", "benchmark"]
@@ -23,6 +25,8 @@ services:
       - ../results:/app/results
     environment:
       - NODE_ENV=production
+      # Recorded in results meta; e.g. GIT_COMMIT=$(git rev-parse HEAD) docker compose ...
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BENCHMARK_RUNS=10
       - BENCHMARK_WARMUP=3
       - BENCHMARK_REDUCED=true

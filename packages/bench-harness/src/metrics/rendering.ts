@@ -1,125 +1,119 @@
-import type { BrowserContext } from '../browser.js';
-import type { BenchmarkConfig } from '../config.js';
-import { computeStats } from '../stats.js';
-import { statToResult, type BenchmarkResult } from '../reporter.js';
+import { callHook, timeHook, type BrowserContext } from '../browser.js';
+import type { SampleSet } from '../samples.js';
 
-type RenderOp =
-  | 'createRows'
-  | 'updateEveryNthRow'
-  | 'replaceAllRows'
-  | 'selectRow'
-  | 'swapRows'
-  | 'removeRow'
-  | 'clearRows'
-  | 'appendRows';
+interface HookCall {
+  op: string;
+  args?: unknown[];
+}
 
 interface RenderBenchmark {
   id: string;
   label: string;
-  setup?: string;
-  run: string;
+  setup?: HookCall;
+  run: HookCall;
+  /** Expected row count after `run` — used to verify the DOM really reflects the op */
+  expectedRows: number;
 }
 
 const BENCHMARKS: RenderBenchmark[] = [
-  { id: 'R1_create_1k', label: 'Create 1,000 rows', run: '__benchmark.createRows(1000)' },
-  { id: 'R2_create_10k', label: 'Create 10,000 rows', run: '__benchmark.createRows(10000)' },
+  { id: 'R1_create_1k', label: 'Create 1,000 rows', run: { op: 'createRows', args: [1000] }, expectedRows: 1000 },
+  { id: 'R2_create_10k', label: 'Create 10,000 rows', run: { op: 'createRows', args: [10000] }, expectedRows: 10000 },
   {
     id: 'R3_update_10th',
     label: 'Update every 10th row',
-    setup: '__benchmark.createRows(10000)',
-    run: '__benchmark.updateEveryNthRow(10)',
+    setup: { op: 'createRows', args: [10000] },
+    run: { op: 'updateEveryNthRow', args: [10] },
+    expectedRows: 10000,
   },
   {
     id: 'R4_replace_all',
     label: 'Replace all rows',
-    setup: '__benchmark.createRows(10000)',
-    run: '__benchmark.replaceAllRows()',
+    setup: { op: 'createRows', args: [10000] },
+    run: { op: 'replaceAllRows' },
+    expectedRows: 10000,
   },
   {
     id: 'R5_select_row',
     label: 'Select row',
-    setup: '__benchmark.createRows(1000)',
-    run: '__benchmark.selectRow(500)',
+    setup: { op: 'createRows', args: [1000] },
+    run: { op: 'selectRow', args: [500] },
+    expectedRows: 1000,
   },
   {
     id: 'R6_swap_rows',
     label: 'Swap rows',
-    setup: '__benchmark.createRows(1000)',
-    run: '__benchmark.swapRows(1, 998)',
+    setup: { op: 'createRows', args: [1000] },
+    run: { op: 'swapRows', args: [1, 998] },
+    expectedRows: 1000,
   },
   {
     id: 'R7_remove_row',
     label: 'Remove row',
-    setup: '__benchmark.createRows(1000)',
-    run: '__benchmark.removeRow(500)',
+    setup: { op: 'createRows', args: [1000] },
+    run: { op: 'removeRow', args: [500] },
+    expectedRows: 999,
   },
   {
     id: 'R8_clear_rows',
     label: 'Clear rows',
-    setup: '__benchmark.createRows(10000)',
-    run: '__benchmark.clearRows()',
+    setup: { op: 'createRows', args: [10000] },
+    run: { op: 'clearRows' },
+    expectedRows: 0,
   },
   {
     id: 'R9_append_1k',
     label: 'Append 1,000 rows',
-    setup: '__benchmark.createRows(10000)',
-    run: '__benchmark.appendRows(1000)',
+    setup: { op: 'createRows', args: [10000] },
+    run: { op: 'appendRows', args: [1000] },
+    expectedRows: 11000,
   },
 ];
 
-/**
- * Measure time from operation start to browser paint using
- * requestAnimationFrame + setTimeout(0) detection.
- */
-async function measureOp(ctx: BrowserContext, setup: string | undefined, run: string): Promise<number> {
-  // Reset state
-  await ctx.page.evaluate(() => {
-    const bm = (window as unknown as { __benchmark: { clearRows: () => void } }).__benchmark;
-    if (bm.clearRows) bm.clearRows();
-  });
+async function measureOp(ctx: BrowserContext, bench: RenderBenchmark): Promise<number> {
+  // Reset to an empty table, then run setup — both fully committed.
+  await callHook(ctx.page, 'clearRows');
+  if (bench.setup) await callHook(ctx.page, bench.setup.op, bench.setup.args);
 
-  // Setup if needed
-  if (setup) {
-    await ctx.page.evaluate(setup);
-    await ctx.forceGC();
-  }
+  // GC after reset/setup so garbage from the previous iteration isn't
+  // collected inside the timed window.
+  await ctx.forceGC();
 
-  // Measure: start → rAF + setTimeout(0) for paint detection
-  const time = await ctx.page.evaluate((runCode: string) => {
-    return new Promise<number>((resolve) => {
-      const start = performance.now();
-      eval(runCode);
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          resolve(performance.now() - start);
-        }, 0);
-      });
-    });
-  }, run);
-
-  return time;
+  return timeHook(ctx.page, bench.run.op, bench.run.args);
 }
 
+/** Throw if the rendered DOM doesn't match the expected row count (pagination / uncommitted DOM). */
+async function verifyDom(ctx: BrowserContext, bench: RenderBenchmark): Promise<void> {
+  const domRows = await ctx.page.$$eval('.data-table tbody tr', (rows) => rows.length);
+  if (domRows !== bench.expectedRows) {
+    throw new Error(
+      `${bench.id}: expected ${bench.expectedRows} rows in the DOM after ${bench.run.op}, found ${domRows}. ` +
+        'Is the app served with ?pageSize=all and does the hook commit before returning?',
+    );
+  }
+}
+
+/**
+ * R1–R9. Expects the table app to be loaded with `?pageSize=all` so every
+ * row is rendered (no pagination).
+ */
 export async function measureRendering(
   ctx: BrowserContext,
-  config: BenchmarkConfig,
-): Promise<Record<string, BenchmarkResult>> {
-  const results: Record<string, BenchmarkResult> = {};
-  const benchmarks = config.reduced ? BENCHMARKS.slice(0, 4) : BENCHMARKS;
+  opts: { runs: number; warmup: number; reduced: boolean },
+): Promise<SampleSet> {
+  const results: SampleSet = {};
+  const benchmarks = opts.reduced ? BENCHMARKS.slice(0, 4) : BENCHMARKS;
 
   for (const bench of benchmarks) {
-    console.log(`    ${bench.label}...`);
+    console.log(`      ${bench.label}...`);
     const runs: number[] = [];
 
-    for (let i = 0; i < config.warmup + config.runs; i++) {
-      await ctx.forceGC();
-      const time = await measureOp(ctx, bench.setup, bench.run);
-      if (i >= config.warmup) {
-        runs.push(time);
-      }
+    for (let i = 0; i < opts.warmup + opts.runs; i++) {
+      const time = await measureOp(ctx, bench);
+      if (i === 0) await verifyDom(ctx, bench);
+      if (i >= opts.warmup) runs.push(time);
     }
 
-    results[bench.id] = statToResult(computeStats(runs), 'ms');
+    results[bench.id] = { unit: 'ms', runs };
   }
 
   return results;

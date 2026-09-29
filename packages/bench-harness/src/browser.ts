@@ -11,13 +11,19 @@ export interface BrowserContext {
 }
 
 /**
- * Launch a Chrome instance configured for benchmarking.
+ * Launch Chromium configured for benchmarking. Uses Playwright's bundled
+ * Chromium (new headless mode) unless CHROME_BIN points elsewhere, so the
+ * browser always matches the Playwright/CDP version in the lockfile.
  */
-export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserContext> {
-  const browser = await chromium.launch({
-    executablePath: config.chromePath,
+export function launchChromium(config: BenchmarkConfig): Promise<Browser> {
+  return chromium.launch({
+    ...(config.chromePath ? { executablePath: config.chromePath } : { channel: 'chromium' }),
     args: config.chromeFlags,
   });
+}
+
+export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserContext> {
+  const browser = await launchChromium(config);
 
   const context = await browser.newContext({
     viewport: { width: 1920, height: 1080 },
@@ -26,15 +32,11 @@ export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserCon
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
 
-  // Enable performance monitoring
   await cdp.send('Performance.enable');
+  await cdp.send('HeapProfiler.enable');
 
   async function forceGC(): Promise<void> {
-    await page.evaluate(() => {
-      if (typeof (window as unknown as { gc: () => void }).gc === 'function') {
-        (window as unknown as { gc: () => void }).gc();
-      }
-    });
+    await cdp.send('HeapProfiler.collectGarbage');
     await new Promise((r) => setTimeout(r, config.delayAfterGC));
   }
 
@@ -44,8 +46,8 @@ export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserCon
     await new Promise((r) => setTimeout(r, 1000));
     await forceGC();
 
-    const result = await cdp.send('Runtime.getHeapUsage' as any);
-    return (result as unknown as { usedSize: number }).usedSize;
+    const result = await cdp.send('Runtime.getHeapUsage');
+    return result.usedSize;
   }
 
   async function close(): Promise<void> {
@@ -55,6 +57,15 @@ export async function launchBrowser(config: BenchmarkConfig): Promise<BrowserCon
   }
 
   return { browser, page, cdp, forceGC, getHeapUsage, close };
+}
+
+/** Wait until the app has exposed its benchmark hooks. */
+export async function waitForHooks(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined',
+    undefined,
+    { timeout: 10000 },
+  );
 }
 
 /**
@@ -70,11 +81,7 @@ export async function navigateToApp(ctx: BrowserContext, url: string): Promise<v
 
   try {
     await ctx.page.goto(url, { waitUntil: 'networkidle' });
-    await ctx.page.waitForFunction(
-      () => typeof (window as unknown as { __benchmark: unknown }).__benchmark !== 'undefined',
-      undefined,
-      { timeout: 10000 }
-    );
+    await waitForHooks(ctx.page);
   } catch (err) {
     if (pageErrors.length > 0) {
       throw new Error(
@@ -85,4 +92,36 @@ export async function navigateToApp(ctx: BrowserContext, url: string): Promise<v
   } finally {
     ctx.page.off('pageerror', onError);
   }
+}
+
+/**
+ * Call `window.__benchmark[op](...args)` in the page and wait for it to
+ * commit (hooks may return a promise — see BenchmarkHooks contract).
+ */
+export async function callHook(page: Page, op: string, args: unknown[] = []): Promise<void> {
+  await page.evaluate(
+    async ([o, a]) => {
+      const bm = (window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }).__benchmark;
+      await bm[o](...a);
+    },
+    [op, args] as [string, unknown[]],
+  );
+}
+
+/**
+ * Time `__benchmark[op](...args)` from call → DOM committed → next paint.
+ * Paint is detected with requestAnimationFrame + setTimeout(0): the timeout
+ * fires after the frame containing the committed DOM has been rendered.
+ */
+export async function timeHook(page: Page, op: string, args: unknown[] = []): Promise<number> {
+  return page.evaluate(
+    async ([o, a]) => {
+      const bm = (window as unknown as { __benchmark: Record<string, (...x: unknown[]) => unknown> }).__benchmark;
+      const start = performance.now();
+      await bm[o](...a);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      return performance.now() - start;
+    },
+    [op, args] as [string, unknown[]],
+  );
 }

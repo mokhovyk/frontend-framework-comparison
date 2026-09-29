@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 interface BenchmarkResults {
   meta: { timestamp: string; frameworks: Record<string, string> };

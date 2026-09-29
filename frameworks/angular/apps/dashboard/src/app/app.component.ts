@@ -194,23 +194,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private exposeBenchmarkHooks(): void {
-    const self = this;
     (window as unknown as { __benchmark: DashboardBenchmarkHooks }).__benchmark = {
-      start() {
-        self.start();
-      },
-      stop() {
-        self.stop();
-      },
-      setSpeed(bps: number) {
-        self.speed.set(bps);
-        if (self.isRunning()) {
-          self.ws!.setRate(bps);
+      start: () => this.start(),
+      stop: () => this.stop(),
+      setSpeed: (bps: number) => {
+        this.speed.set(bps);
+        if (this.isRunning()) {
+          this.ws!.setRate(bps);
         }
       },
-      runBenchmark() {
-        return self.runBenchmark();
-      },
+      runBenchmark: () => this.runBenchmark(),
     };
   }
 }
