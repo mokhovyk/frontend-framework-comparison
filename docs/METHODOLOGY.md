@@ -8,7 +8,7 @@ This benchmark suite measures real-world frontend framework performance under co
 
 All published benchmarks run inside a Docker container (`docker/Dockerfile`):
 
-- **OS / Node.js**: `node:22-bookworm-slim`
+- **OS / Node.js**: `node:24-bookworm-slim`
 - **Browser**: Playwright's bundled Chromium, installed with `playwright install --with-deps chromium`, so the browser always matches the Playwright/CDP version pinned in `pnpm-lock.yaml`. Runs in Chromium's new headless mode. Set `CHROME_BIN` to use a different binary.
 - **CPU / RAM**: 2 cores, 4 GB (`--cpus=2 --memory=4g`)
 - **Viewport**: 1920×1080
