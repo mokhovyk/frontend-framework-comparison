@@ -81,8 +81,12 @@
 }
 
 @keyframes cell-flash {
-  0% { background: var(--color-primary); }
-  100% { background: transparent; }
+  0% {
+    background: var(--color-primary);
+  }
+  100% {
+    background: transparent;
+  }
 }
 
 /* Status Grid */
@@ -99,10 +103,18 @@
   transition: background var(--transition);
 }
 
-.status-cell.ok { background: var(--color-success); }
-.status-cell.warning { background: var(--color-warning); }
-.status-cell.error { background: var(--color-error); }
-.status-cell.idle { background: var(--color-bg-tertiary); }
+.status-cell.ok {
+  background: var(--color-success);
+}
+.status-cell.warning {
+  background: var(--color-warning);
+}
+.status-cell.error {
+  background: var(--color-error);
+}
+.status-cell.idle {
+  background: var(--color-bg-tertiary);
+}
 
 /* Controls */
 .dashboard-controls {

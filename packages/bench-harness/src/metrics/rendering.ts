@@ -16,8 +16,18 @@ interface RenderBenchmark {
 }
 
 const BENCHMARKS: RenderBenchmark[] = [
-  { id: 'R1_create_1k', label: 'Create 1,000 rows', run: { op: 'createRows', args: [1000] }, expectedRows: 1000 },
-  { id: 'R2_create_10k', label: 'Create 10,000 rows', run: { op: 'createRows', args: [10000] }, expectedRows: 10000 },
+  {
+    id: 'R1_create_1k',
+    label: 'Create 1,000 rows',
+    run: { op: 'createRows', args: [1000] },
+    expectedRows: 1000,
+  },
+  {
+    id: 'R2_create_10k',
+    label: 'Create 10,000 rows',
+    run: { op: 'createRows', args: [10000] },
+    expectedRows: 10000,
+  },
   {
     id: 'R3_update_10th',
     label: 'Update every 10th row',

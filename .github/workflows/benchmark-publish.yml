@@ -1,0 +1,104 @@
+name: Benchmark (Publish)
+
+# Shared by the main and weekly benchmarks: runs the full suite on one commit,
+# commits the results to main and deploys the results site.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to benchmark
+        type: string
+        required: true
+      commit-message:
+        description: Message for the results commit
+        type: string
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    # Main and weekly runs both push results to main, so only one runs at a
+    # time. A newer queued run replaces an older queued one; the running one
+    # is never cancelled.
+    concurrency:
+      group: results-writer
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Only needed for report generation — the benchmark builds everything inside the image
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          tags: bench:full
+          load: true
+          cache-from: type=gha,scope=bench-main
+          cache-to: type=gha,scope=bench-main,mode=max
+
+      - name: Run full benchmark suite
+        run: |
+          docker run --cpus=2 --memory=4g \
+            -e BENCHMARK_RUNS=25 \
+            -e BENCHMARK_WARMUP=5 \
+            -e BENCHMARK_FAIL_ON_VARIANCE=false \
+            -e GIT_COMMIT=${{ inputs.ref }} \
+            -v ${{ github.workspace }}/results:/app/results \
+            bench:full
+
+      - name: Fix results directory permissions
+        run: sudo chown -R $(id -u):$(id -g) results
+
+      - name: Generate report
+        run: |
+          pnpm --filter results-site build
+          pnpm --filter results-site generate
+
+      - name: Log framework versions
+        run: |
+          echo "Framework versions used in this run:" >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const meta = JSON.parse(require('fs').readFileSync('results/latest.json', 'utf8')).meta;
+            for (const [fw, v] of Object.entries(meta.frameworks)) console.log('- ' + fw + ': ' + v);
+            console.log('- browser: ' + meta.chromeVersion);
+          " >> $GITHUB_STEP_SUMMARY
+
+      # The checkout is a detached commit that main may have moved past, so
+      # rebase onto the current main before pushing.
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results/latest.json results/archive/ results/site/
+          git diff --staged --quiet || git commit -m "${{ inputs.commit-message }}"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+
+      - name: Deploy results site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: results/site

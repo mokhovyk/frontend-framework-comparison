@@ -36,7 +36,9 @@ function parseArgs(argv: string[]): Args {
     else positional.push(a);
   }
   if (positional.length !== 2) {
-    console.error('Usage: compare-cli <base.json> <head.json> [--markdown out.md] [--threshold 0.10] [--advisory] [--no-fail]');
+    console.error(
+      'Usage: compare-cli <base.json> <head.json> [--markdown out.md] [--threshold 0.10] [--advisory] [--no-fail]',
+    );
     process.exit(2);
   }
   return { ...(args as Args), base: positional[0], head: positional[1] };
@@ -45,7 +47,8 @@ function parseArgs(argv: string[]): Args {
 const valueOf = (r: BenchmarkResult) => r.median ?? r.value;
 
 function format(v: number, unit: string): string {
-  if (unit === 'bytes') return v >= 1e6 ? `${(v / 1e6).toFixed(2)} MB` : `${(v / 1024).toFixed(1)} KB`;
+  if (unit === 'bytes')
+    return v >= 1e6 ? `${(v / 1e6).toFixed(2)} MB` : `${(v / 1024).toFixed(1)} KB`;
   return `${v.toFixed(1)} ${unit}`;
 }
 
@@ -70,7 +73,12 @@ function judge(base: BenchmarkResult | undefined, head: BenchmarkResult, thresho
   return { verdict, hv, bv, diff, pValue };
 }
 
-const EMOJI: Record<Verdict, string> = { regression: '🔴', improvement: '🟢', neutral: '➖', new: '🆕' };
+const EMOJI: Record<Verdict, string> = {
+  regression: '🔴',
+  improvement: '🟢',
+  neutral: '➖',
+  new: '🆕',
+};
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -93,12 +101,14 @@ function main() {
       let cell = format(j.hv, h.unit);
       if (j.diff !== undefined) {
         const pct = `${j.diff > 0 ? '+' : ''}${(j.diff * 100).toFixed(1)}%`;
-        const p = j.pValue !== undefined ? `, p=${j.pValue < 0.001 ? '<0.001' : j.pValue.toFixed(3)}` : '';
+        const p =
+          j.pValue !== undefined ? `, p=${j.pValue < 0.001 ? '<0.001' : j.pValue.toFixed(3)}` : '';
         cell += ` (${EMOJI[j.verdict]} ${pct}${p})`;
       } else {
         cell += ` (${EMOJI[j.verdict]})`;
       }
-      if (j.verdict === 'regression') regressions.push(`${fw}/${metric}: ${((j.diff ?? 0) * 100).toFixed(1)}% slower/larger`);
+      if (j.verdict === 'regression')
+        regressions.push(`${fw}/${metric}: ${((j.diff ?? 0) * 100).toFixed(1)}% slower/larger`);
       return cell;
     });
     md += `| ${metric.replace(/_/g, ' ')} | ${cells.join(' | ')} |\n`;
@@ -107,7 +117,8 @@ function main() {
   md += `\n🔴 regression / 🟢 improvement = median changed by more than ${(args.threshold * 100).toFixed(0)}% `;
   md += `and Mann-Whitney U p < ${ALPHA} (single-value metrics: threshold only). ➖ = no significant change.\n`;
   if (args.advisory) {
-    md += '\n> ⚠️ This PR changes the benchmark harness, so base and head were measured with different code. ';
+    md +=
+      '\n> ⚠️ This PR changes the benchmark harness, so base and head were measured with different code. ';
     md += 'The regression gate is advisory only.\n';
   }
   md += `\n<sub>Base ${base.meta.commit.substring(0, 7)} · Head ${head.meta.commit.substring(0, 7)} · ${head.meta.chromeVersion} · ${head.meta.timestamp}</sub>\n`;
@@ -116,7 +127,9 @@ function main() {
   else console.log(md);
 
   if (regressions.length > 0) {
-    console.error(`Regressions detected (>${(args.threshold * 100).toFixed(0)}%, p < ${ALPHA}):\n  ${regressions.join('\n  ')}`);
+    console.error(
+      `Regressions detected (>${(args.threshold * 100).toFixed(0)}%, p < ${ALPHA}):\n  ${regressions.join('\n  ')}`,
+    );
     if (!args.advisory && !args.noFail) process.exit(1);
     console.error('(not failing: --advisory / --no-fail)');
   } else {

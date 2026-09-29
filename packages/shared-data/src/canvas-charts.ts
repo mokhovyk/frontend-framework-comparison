@@ -117,7 +117,10 @@ function renderBarChart(
  * Create a chart renderer bound to a specific canvas.
  * Returns an update function for efficient re-rendering.
  */
-export function createChartRenderer(canvas: HTMLCanvasElement, baseConfig: Omit<ChartConfig, 'data'>) {
+export function createChartRenderer(
+  canvas: HTMLCanvasElement,
+  baseConfig: Omit<ChartConfig, 'data'>,
+) {
   return function update(data: number[]) {
     renderChart(canvas, { ...baseConfig, data });
   };

@@ -13,10 +13,14 @@ test.describe('Nested Tree App Parity', () => {
 
   test('theme toggle propagates to all levels', async ({ page }) => {
     // Starts dark; toggling should switch every level to light
-    await expect(page.locator('[data-level].dark, [data-level][data-theme="dark"]')).toHaveCount(50);
+    await expect(page.locator('[data-level].dark, [data-level][data-theme="dark"]')).toHaveCount(
+      50,
+    );
     await page.click('button:has-text("Toggle Theme")');
 
-    await expect(page.locator('[data-level].light, [data-level][data-theme="light"]')).toHaveCount(50);
+    await expect(page.locator('[data-level].light, [data-level][data-theme="light"]')).toHaveCount(
+      50,
+    );
     await expect(page.locator('[data-level].dark, [data-level][data-theme="dark"]')).toHaveCount(0);
   });
 

@@ -8,9 +8,19 @@ test.describe('Router App Parity', () => {
 
   test('sidebar has links to all pages', async ({ page }) => {
     // 9 page links in the nav (login and 404 are not linked from it)
-    const labels = await page.$$eval('.sidebar nav a', (links) => links.map((a) => a.textContent?.trim() ?? ''));
+    const labels = await page.$$eval('.sidebar nav a', (links) =>
+      links.map((a) => a.textContent?.trim() ?? ''),
+    );
     expect(labels.map((l) => l.replace(/\s+.*$/, ''))).toEqual([
-      'Home', 'Dashboard', 'Table', 'Form', 'Profile', 'Settings', 'Notifications', 'Search', 'About',
+      'Home',
+      'Dashboard',
+      'Table',
+      'Form',
+      'Profile',
+      'Settings',
+      'Notifications',
+      'Search',
+      'About',
     ]);
   });
 

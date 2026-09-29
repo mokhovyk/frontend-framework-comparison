@@ -1,0 +1,49 @@
+version: 2
+
+updates:
+  # Major versions only: the weekly benchmark workflow picks up minor and patch
+  # releases itself. A major can need code migrations, so it comes in as a PR
+  # that has to pass CI and the PR benchmark.
+  - package-ecosystem: npm
+    directories:
+      - /frameworks/react
+      - /frameworks/angular
+      - /frameworks/vue
+      - /packages/bench-harness
+      - /packages/parity-tests
+    schedule:
+      interval: weekly
+      day: monday
+    allow:
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-router
+      - dependency-name: react-router-dom
+      - dependency-name: '@types/react'
+      - dependency-name: '@types/react-dom'
+      - dependency-name: '@angular/*'
+      - dependency-name: '@angular-devkit/*'
+      - dependency-name: vue
+      - dependency-name: vue-router
+      - dependency-name: playwright
+      - dependency-name: '@playwright/test'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-minor', 'version-update:semver-patch']
+    groups:
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router
+          - react-router-dom
+          - '@types/react'
+          - '@types/react-dom'
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*']
+      vue:
+        patterns: ['vue', 'vue-router']
+      playwright:
+        patterns: ['playwright', '@playwright/test']
+    commit-message:
+      prefix: 'chore(deps)'

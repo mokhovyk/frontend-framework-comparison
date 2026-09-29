@@ -1,4 +1,10 @@
-import type { DashboardBatch, DataPoint, KpiUpdate, TableRowUpdate, StatusUpdate } from '../types.js';
+import type {
+  DashboardBatch,
+  DataPoint,
+  KpiUpdate,
+  TableRowUpdate,
+  StatusUpdate,
+} from '../types.js';
 
 function mulberry32(seed: number): () => number {
   return () => {
@@ -31,12 +37,12 @@ export function createDashboardStream(seed: number = 42): DashboardStream {
 
   // Line chart state: 4 charts, each with a rolling window of 100 points
   const lineChartState: number[][] = Array.from({ length: 4 }, () =>
-    Array.from({ length: 100 }, () => rand() * 100)
+    Array.from({ length: 100 }, () => rand() * 100),
   );
 
   // Bar chart state: 4 charts, each with 8 bars
   const barChartState: number[][] = Array.from({ length: 4 }, () =>
-    Array.from({ length: 8 }, () => rand() * 100)
+    Array.from({ length: 8 }, () => rand() * 100),
   );
 
   // KPI state

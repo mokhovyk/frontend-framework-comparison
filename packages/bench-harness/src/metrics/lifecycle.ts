@@ -28,7 +28,9 @@ export async function measureLifecycle(
     await ctx.forceGC();
     const time = await timeHook(ctx.page, 'mountComponents', [1000]);
     if (i === 0 && (await lifecycleNodeCount(ctx)) === 0) {
-      throw new Error('C1: mountComponents(1000) did not render anything into #lifecycle-container');
+      throw new Error(
+        'C1: mountComponents(1000) did not render anything into #lifecycle-container',
+      );
     }
     if (i >= opts.warmup) c1Runs.push(time);
   }
@@ -55,9 +57,14 @@ export async function measureLifecycle(
     await callHook(ctx.page, 'unmountComponents');
     await ctx.forceGC();
     const time = await ctx.page.evaluate(async () => {
-      const bm = (window as unknown as {
-        __benchmark: { mountComponents: (n: number) => unknown; unmountComponents: () => unknown };
-      }).__benchmark;
+      const bm = (
+        window as unknown as {
+          __benchmark: {
+            mountComponents: (n: number) => unknown;
+            unmountComponents: () => unknown;
+          };
+        }
+      ).__benchmark;
       const start = performance.now();
       for (let c = 0; c < 10; c++) {
         await bm.mountComponents(1000);

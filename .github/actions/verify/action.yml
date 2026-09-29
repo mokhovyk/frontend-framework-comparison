@@ -1,0 +1,36 @@
+name: Verify
+description: Lint, build, type-check and test the workspace. Expects dependencies to be installed.
+
+runs:
+  using: composite
+  steps:
+    - name: Check formatting
+      shell: bash
+      run: pnpm format:check
+
+    - name: Lint
+      shell: bash
+      run: pnpm lint
+
+    # Builds every package and app (tsc / ng build type-check as they go)
+    - name: Build all
+      shell: bash
+      run: pnpm build:all
+
+    - name: Type-check React and Vue apps
+      shell: bash
+      run: pnpm typecheck
+
+    - name: Harness unit tests
+      shell: bash
+      run: pnpm test:unit
+
+    - name: Install Playwright Chromium
+      shell: bash
+      run: pnpm --filter parity-tests exec playwright install --with-deps chromium
+
+    - name: Parity tests
+      shell: bash
+      run: pnpm test:parity
+      env:
+        CI: 'true'

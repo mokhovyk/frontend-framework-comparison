@@ -24,9 +24,7 @@
           },
           "configurations": {
             "production": {
-              "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }
-              ],
+              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }],
               "outputHashing": "all"
             },
             "development": {
@@ -68,9 +66,7 @@
           },
           "configurations": {
             "production": {
-              "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }
-              ],
+              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }],
               "outputHashing": "all"
             },
             "development": {
@@ -112,9 +108,7 @@
           },
           "configurations": {
             "production": {
-              "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }
-              ],
+              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }],
               "outputHashing": "all"
             },
             "development": {
@@ -156,9 +150,7 @@
           },
           "configurations": {
             "production": {
-              "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }
-              ],
+              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }],
               "outputHashing": "all"
             },
             "development": {
@@ -200,9 +192,7 @@
           },
           "configurations": {
             "production": {
-              "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }
-              ],
+              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" }],
               "outputHashing": "all"
             },
             "development": {

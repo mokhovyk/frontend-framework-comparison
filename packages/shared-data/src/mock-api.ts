@@ -4,8 +4,13 @@ import { generateTableData } from './generators/table-data.js';
 export interface MockApi {
   fetchTableData: (count?: number) => Promise<ApiResponse<TableRow[]>>;
   fetchDashboardData: () => Promise<ApiResponse<{ kpis: number[]; tableRows: number[][] }>>;
-  login: (username: string, password: string) => Promise<ApiResponse<{ token: string; user: string }>>;
-  fetchNotifications: (count?: number) => Promise<ApiResponse<{ id: number; message: string; read: boolean }[]>>;
+  login: (
+    username: string,
+    password: string,
+  ) => Promise<ApiResponse<{ token: string; user: string }>>;
+  fetchNotifications: (
+    count?: number,
+  ) => Promise<ApiResponse<{ id: number; message: string; read: boolean }[]>>;
   search: (query: string) => Promise<ApiResponse<{ id: number; title: string; snippet: string }[]>>;
 }
 
@@ -35,7 +40,7 @@ export function createMockApi(delay: number = 50): MockApi {
       return simulateDelay({
         kpis: [1250, 8734, 342, 98.5],
         tableRows: Array.from({ length: 50 }, (_, i) =>
-          Array.from({ length: 5 }, (_, j) => (i + 1) * 100 + j)
+          Array.from({ length: 5 }, (_, j) => (i + 1) * 100 + j),
         ),
       });
     },
