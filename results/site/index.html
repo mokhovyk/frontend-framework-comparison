@@ -3,78 +3,1467 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frontend Framework Benchmark Results</title>
-  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <meta name="color-scheme" content="light dark">
+  <title>Frontend Framework Benchmarks</title>
+  <meta name="description" content="React vs Angular vs Vue: bundle size, loading, rendering, memory, reactivity and lifecycle benchmarks.">
+  <script>
+    try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; background: #0f172a; color: #f1f5f9; margin: 0; padding: 24px; }
-    h1 { text-align: center; margin-bottom: 32px; }
-    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; max-width: 1400px; margin: 0 auto; }
-    .chart-card { background: #1e293b; border-radius: 8px; padding: 16px; }
-    .vega-embed { width: 100%; }
-  </style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --border: #e3e6eb;
+  --ink: #0f172a; --ink-2: #475569; --ink-3: #64748b; --track: #eef0f4; --ci: #0f172a8c;
+  --accent: #4f46e5; --shadow: 0 1px 2px #0f172a0d, 0 4px 16px #0f172a0a;
+  --react: #0284c7; --angular: #b8173a; --vue: #1f9d62;
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0d12; --surface: #111318; --surface-2: #171a21; --border: #232733;
+    --ink: #e8eaf0; --ink-2: #a3aab8; --ink-3: #7c8494; --track: #1c2029; --ci: #e8eaf0a6;
+    --accent: #818cf8; --shadow: 0 1px 2px #0006, 0 8px 24px #0004;
+    --react: #159dd0; --angular: #c9243f; --vue: #35a974;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0d12; --surface: #111318; --surface-2: #171a21; --border: #232733;
+  --ink: #e8eaf0; --ink-2: #a3aab8; --ink-3: #7c8494; --track: #1c2029; --ci: #e8eaf0a6;
+  --accent: #818cf8; --shadow: 0 1px 2px #0006, 0 8px 24px #0004;
+  --react: #159dd0; --angular: #c9243f; --vue: #35a974;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+.muted { color: var(--ink-3); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 24px; }
+
+.fw-react { --c: var(--react); } .fw-angular { --c: var(--angular); } .fw-vue { --c: var(--vue); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--c, var(--ink-3)); flex: none; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-inner { max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+.logo { display: inline-flex; gap: 3px; }
+.logo i { width: 6px; height: 18px; border-radius: 3px; background: var(--c); }
+.logo i:nth-child(2) { height: 13px; align-self: flex-end; } .logo i:nth-child(3) { height: 9px; align-self: flex-end; }
+.nav-links { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.nav-links a { padding: 6px 12px; border-radius: 999px; color: var(--ink-2); text-decoration: none; font-size: 14px; white-space: nowrap; }
+.nav-links a:hover { background: var(--surface-2); color: var(--ink); }
+.theme-toggle {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: none;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.theme-toggle:hover { color: var(--ink); }
+
+.hero { padding-block: 64px 24px; }
+.eyebrow { margin: 0 0 12px; color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+h1 { margin: 0; font-size: clamp(36px, 6vw, 64px); line-height: 1.05; letter-spacing: -.035em; font-weight: 750; }
+h1 .vs { color: var(--ink-3); font-weight: 400; font-size: .55em; vertical-align: .2em; margin-inline: .15em; }
+.lede { max-width: 640px; margin: 18px 0 0; font-size: 17px; color: var(--ink-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.chip {
+  display: inline-flex; gap: 6px; align-items: center; padding: 5px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); font-size: 13px; text-decoration: none;
+}
+
+.scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 40px; }
+.score {
+  position: relative; padding: 20px 22px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
+}
+.score.is-leader { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.score.is-leader::after {
+  content: "Most wins"; position: absolute; top: 18px; right: 18px; font-size: 12px; font-weight: 600;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 2px 10px; border-radius: 999px;
+}
+.score-head { display: flex; align-items: center; gap: 8px; }
+.score-name { font-weight: 650; font-size: 16px; }
+.version { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.score-num { font-size: 44px; font-weight: 700; letter-spacing: -.03em; margin-top: 10px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.score-num .of { font-size: 18px; color: var(--ink-3); font-weight: 500; margin-left: 6px; letter-spacing: 0; }
+.score .muted { font-size: 13px; }
+.meter { height: 6px; border-radius: 999px; background: var(--track); margin-top: 16px; overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: 999px; background: var(--c); }
+
+.section { padding-top: 56px; }
+.section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 20px; }
+.section-head h2 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
+.section-head p { margin: 0; color: var(--ink-3); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 16px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px 16px; box-shadow: var(--shadow); transition: border-color .15s;
+}
+.card:hover { border-color: color-mix(in srgb, var(--ink-3) 40%, var(--border)); }
+.card-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.card h3 { margin: 0; font-size: 15px; font-weight: 620; letter-spacing: -.01em; }
+.detail { margin: 2px 0 0; font-size: 13px; color: var(--ink-3); }
+.code {
+  display: inline-block; flex: none; min-width: 30px; padding: 1px 6px; margin-right: 8px; border-radius: 6px; text-align: center;
+  font: 600 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border);
+}
+.card-head .code { margin: 1px 0 0; }
+
+.rows { display: grid; gap: 4px; }
+.row {
+  display: grid; grid-template-columns: 76px 1fr auto 52px; align-items: center; gap: 10px;
+  padding: 5px 6px; margin-inline: -6px; border-radius: 8px; font-size: 13px; outline: none;
+}
+.row:hover, .row:focus-visible { background: var(--surface-2); }
+.row:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.fw { display: flex; align-items: center; gap: 7px; color: var(--ink-2); }
+.track { position: relative; height: 10px; }
+.bar { position: absolute; inset: 0 auto 0 0; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--c); }
+.ci { position: absolute; top: 50%; height: 0; border-top: 1.5px solid var(--ci); }
+.ci::before, .ci::after { content: ""; position: absolute; top: -5px; height: 8px; border-left: 1.5px solid var(--ci); }
+.ci::before { left: 0; } .ci::after { right: 0; }
+.val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; white-space: nowrap; }
+.delta { font-variant-numeric: tabular-nums; color: var(--ink-3); text-align: right; font-size: 12px; }
+.badge {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 650;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.tie { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; font-size: 13px; }
+thead th .swatch { margin-right: 8px; }
+tbody tr:last-child > * { border-bottom: 0; }
+tbody tr:hover { background: var(--surface-2); }
+tbody th { font-weight: 500; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+thead th:not(:first-child) { text-align: right; }
+td.is-best { color: var(--ink); font-weight: 650; }
+.check { color: var(--accent); }
+
+.footer { margin-top: 72px; border-top: 1px solid var(--border); padding-block: 24px 40px; font-size: 13px; color: var(--ink-3); }
+.footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.footer a { color: var(--ink-2); }
+
+.tooltip {
+  position: fixed; z-index: 20; pointer-events: none; max-width: 280px; padding: 10px 12px; border-radius: 10px;
+  background: var(--ink); color: var(--bg); font-size: 12px; line-height: 1.6; white-space: pre-line;
+  font-variant-numeric: tabular-nums; box-shadow: 0 8px 24px #0003;
+}
+.tooltip::first-line { font-weight: 650; }
+[hidden] { display: none !important; }
+
+@media (max-width: 640px) {
+  .wrap, .topbar-inner { padding-inline: 16px; }
+  .nav-links { display: none; }
+  .brand { margin-right: auto; }
+  .hero { padding-top: 40px; }
+  .row { grid-template-columns: 64px 1fr auto 44px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media (forced-colors: active) { .bar, .meter span, .swatch, .logo i { forced-color-adjust: none; } }
+</style>
 </head>
 <body>
-  <h1>Frontend Framework Benchmark Results</h1>
-  <div class="charts">
-    <div class="chart-card" id="chart-0"></div>
-    <div class="chart-card" id="chart-1"></div>
-    <div class="chart-card" id="chart-2"></div>
-    <div class="chart-card" id="chart-3"></div>
-    <div class="chart-card" id="chart-4"></div>
-    <div class="chart-card" id="chart-5"></div>
-    <div class="chart-card" id="chart-6"></div>
-    <div class="chart-card" id="chart-7"></div>
-    <div class="chart-card" id="chart-8"></div>
-    <div class="chart-card" id="chart-9"></div>
-    <div class="chart-card" id="chart-10"></div>
-    <div class="chart-card" id="chart-11"></div>
-    <div class="chart-card" id="chart-12"></div>
-    <div class="chart-card" id="chart-13"></div>
-    <div class="chart-card" id="chart-14"></div>
-    <div class="chart-card" id="chart-15"></div>
-    <div class="chart-card" id="chart-16"></div>
-    <div class="chart-card" id="chart-17"></div>
-    <div class="chart-card" id="chart-18"></div>
-    <div class="chart-card" id="chart-19"></div>
-    <div class="chart-card" id="chart-20"></div>
-    <div class="chart-card" id="chart-21"></div>
-    <div class="chart-card" id="chart-22"></div>
-    <div class="chart-card" id="chart-23"></div>
-    <div class="chart-card" id="chart-24"></div>
-    <div class="chart-card" id="chart-25"></div>
-  </div>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top"><span class="logo" aria-hidden="true"><i class="fw-react"></i><i class="fw-angular"></i><i class="fw-vue"></i></span>Framework Benchmarks</a>
+      <div class="nav-links"><a href="#build">Build &#38; bundle</a><a href="#loading">Loading</a><a href="#rendering">Rendering</a><a href="#memory">Memory</a><a href="#reactivity">Reactivity</a><a href="#lifecycle">Lifecycle</a><a href="#table">Table</a></div>
+      <button class="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="wrap" id="top">
+    <header class="hero">
+      <p class="eyebrow">Monthly benchmark · September 28, 2026</p>
+      <h1>React <span class="vs">vs</span> Angular <span class="vs">vs</span> Vue</h1>
+      <p class="lede">Identical apps built in each framework, measured in Docker with the same browser, data and methodology. Every number is a median; lower is better.</p>
+      <div class="chips"><span class="chip"><span class="muted">Run</span> September 28, 2026</span><span class="chip"><span class="muted">Browser</span> Chromium 154.0.8037.57</span><span class="chip"><span class="muted">Node</span> v22.23.3</span></div>
+      <div class="scoreboard">
+        <div class="score fw-card-react is-leader">
+          <div class="score-head"><span class="swatch fw-react"></span><span class="score-name">React</span><span class="version">19.x</span></div>
+          <div class="score-num">10<span class="of">/ 25</span></div>
+          <div class="muted">metrics where it's fastest or smallest</div>
+          <div class="meter" aria-hidden="true"><span class="fw-react" style="width:40.0%"></span></div>
+        </div>
+        <div class="score fw-card-angular">
+          <div class="score-head"><span class="swatch fw-angular"></span><span class="score-name">Angular</span><span class="version">19.x</span></div>
+          <div class="score-num">5<span class="of">/ 25</span></div>
+          <div class="muted">metrics where it's fastest or smallest</div>
+          <div class="meter" aria-hidden="true"><span class="fw-angular" style="width:20.0%"></span></div>
+        </div>
+        <div class="score fw-card-vue is-leader">
+          <div class="score-head"><span class="swatch fw-vue"></span><span class="score-name">Vue</span><span class="version">3.5.x</span></div>
+          <div class="score-num">10<span class="of">/ 25</span></div>
+          <div class="muted">metrics where it's fastest or smallest</div>
+          <div class="meter" aria-hidden="true"><span class="fw-vue" style="width:40.0%"></span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section" id="build">
+      <div class="section-head">
+        <h2>Build &#38; bundle</h2>
+        <p>Production build of the table app: shipped JS/CSS size and build time.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="B1_bundle_raw">
+        <header class="card-head">
+          <span class="code">B1</span>
+          <div>
+            <h3>Bundle size (raw)</h3>
+            <p class="detail">All JS/CSS in the production build, uncompressed</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 231.5 KB">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span></span>
+          <span class="val">231.5 KB</span>
+          <span class="delta">3.0×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 165.6 KB">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:71.51%"></span></span>
+          <span class="val">165.6 KB</span>
+          <span class="delta">2.1×</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 77.6 KB">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:33.51%"></span></span>
+          <span class="val">77.6 KB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="B2_bundle_gzip">
+        <header class="card-head">
+          <span class="code">B2</span>
+          <div>
+            <h3>Bundle size (gzip)</h3>
+            <p class="detail">gzip level 9</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 73.1 KB">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span></span>
+          <span class="val">73.1 KB</span>
+          <span class="delta">2.4×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 56.4 KB">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:77.18%"></span></span>
+          <span class="val">56.4 KB</span>
+          <span class="delta">+82%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 30.9 KB">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:42.32%"></span></span>
+          <span class="val">30.9 KB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="B3_bundle_brotli">
+        <header class="card-head">
+          <span class="code">B3</span>
+          <div>
+            <h3>Bundle size (brotli)</h3>
+            <p class="detail">brotli quality 11</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 62.8 KB">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span></span>
+          <span class="val">62.8 KB</span>
+          <span class="delta">2.3×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 50.3 KB">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:80.11%"></span></span>
+          <span class="val">50.3 KB</span>
+          <span class="delta">+81%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 27.7 KB">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:44.14%"></span></span>
+          <span class="val">27.7 KB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="B5_prod_build">
+        <header class="card-head">
+          <span class="code">B5</span>
+          <div>
+            <h3>Production build</h3>
+            <p class="detail">Clean build, caches cleared</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 1.30 s median
+Mean 1.30 s
+95% CI 1.28 s – 1.34 s
+p5–p95 1.27 s – 1.38 s
+CV 2.3%
+10 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:25.89%"></span><span class="ci" style="left:25.54%;width:1.19%"></span></span>
+          <span class="val">1.30 s</span>
+          <span class="delta">+16%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 4.93 s median
+Mean 4.85 s
+95% CI 4.64 s – 5.01 s
+p5–p95 4.60 s – 5.07 s
+CV 4.1%
+10 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:98.26%"></span><span class="ci" style="left:92.50%;width:7.50%"></span></span>
+          <span class="val">4.93 s</span>
+          <span class="delta">4.4×</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 1.12 s median
+Mean 1.12 s
+95% CI 1.11 s – 1.14 s
+p5–p95 1.10 s – 1.15 s
+CV 1.5%
+10 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:22.39%"></span><span class="ci" style="left:22.13%;width:0.58%"></span></span>
+          <span class="val">1.12 s</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      </div>
+    </section>
+    <section class="section" id="loading">
+      <div class="section-head">
+        <h2>Loading</h2>
+        <p>Cold load of the table app in a fresh browser with 4× CPU throttling.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="L1_fcp">
+        <header class="card-head">
+          <span class="code">L1</span>
+          <div>
+            <h3>First Contentful Paint</h3>
+            <p class="detail">first-contentful-paint</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 600 ms median
+Mean 607 ms
+95% CI 584 ms – 628 ms
+p5–p95 576 ms – 656 ms
+CV 4.7%
+21 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:77.32%"></span><span class="ci" style="left:75.26%;width:5.67%"></span></span>
+          <span class="val">600 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 756 ms median
+Mean 761 ms
+95% CI 748 ms – 776 ms
+p5–p95 732 ms – 792 ms
+CV 2.8%
+21 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:97.42%"></span><span class="ci" style="left:96.39%;width:3.61%"></span></span>
+          <span class="val">756 ms</span>
+          <span class="delta">+26%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 604 ms median
+Mean 601 ms
+95% CI 588 ms – 632 ms
+p5–p95 568 ms – 720 ms
+CV 4.9%
+21 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:77.84%"></span><span class="ci" style="left:75.77%;width:5.67%"></span></span>
+          <span class="val">604 ms</span>
+          <span class="delta">+1%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="L2_lcp">
+        <header class="card-head">
+          <span class="code">L2</span>
+          <div>
+            <h3>Largest Contentful Paint</h3>
+            <p class="detail">Last largest-contentful-paint entry</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 600 ms median
+Mean 607 ms
+95% CI 584 ms – 628 ms
+p5–p95 576 ms – 656 ms
+CV 4.7%
+21 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:77.32%"></span><span class="ci" style="left:75.26%;width:5.67%"></span></span>
+          <span class="val">600 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 756 ms median
+Mean 761 ms
+95% CI 748 ms – 776 ms
+p5–p95 732 ms – 792 ms
+CV 2.8%
+21 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:97.42%"></span><span class="ci" style="left:96.39%;width:3.61%"></span></span>
+          <span class="val">756 ms</span>
+          <span class="delta">+26%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 604 ms median
+Mean 601 ms
+95% CI 588 ms – 632 ms
+p5–p95 568 ms – 720 ms
+CV 4.9%
+21 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:77.84%"></span><span class="ci" style="left:75.77%;width:5.67%"></span></span>
+          <span class="val">604 ms</span>
+          <span class="delta">+1%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="L3_tti">
+        <header class="card-head">
+          <span class="code">L3</span>
+          <div>
+            <h3>Time to Interactive</h3>
+            <p class="detail">Lighthouse definition</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 496 ms median
+Mean 503 ms
+95% CI 491 ms – 535 ms
+p5–p95 479 ms – 565 ms
+CV 5.0%
+21 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:67.88%"></span><span class="ci" style="left:67.21%;width:6.01%"></span></span>
+          <span class="val">496 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 711 ms median
+Mean 718 ms
+95% CI 708 ms – 731 ms
+p5–p95 694 ms – 764 ms
+CV 2.9%
+21 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:97.28%"></span><span class="ci" style="left:96.92%;width:3.08%"></span></span>
+          <span class="val">711 ms</span>
+          <span class="delta">+43%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 557 ms median
+Mean 562 ms
+95% CI 546 ms – 589 ms
+p5–p95 519 ms – 662 ms
+CV 6.3%
+21 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:76.20%"></span><span class="ci" style="left:74.76%;width:5.83%"></span></span>
+          <span class="val">557 ms</span>
+          <span class="delta">+12%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="L4_tbt">
+        <header class="card-head">
+          <span class="code">L4</span>
+          <div>
+            <h3>Total Blocking Time</h3>
+            <p class="detail">Long-task time beyond 50 ms, FCP → TTI</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 0.00 ms median
+Mean 0.00 ms
+95% CI 0.00 ms – 0.00 ms
+p5–p95 0.00 ms – 0.00 ms
+CV 0.0%
+21 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"></span>
+          <span class="val">0.00 ms</span>
+          <span class="delta"></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 0.00 ms median
+Mean 0.00 ms
+95% CI 0.00 ms – 0.00 ms
+p5–p95 0.00 ms – 0.00 ms
+CV 0.0%
+21 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"></span>
+          <span class="val">0.00 ms</span>
+          <span class="delta"></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 0.00 ms median
+Mean 0.00 ms
+95% CI 0.00 ms – 0.00 ms
+p5–p95 0.00 ms – 0.00 ms
+CV 0.0%
+21 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"></span>
+          <span class="val">0.00 ms</span>
+          <span class="delta"></span>
+        </div>
+        </div>
+        <p class="tie">All frameworks tied at 0.00 ms</p>
+      </article>
+      </div>
+    </section>
+    <section class="section" id="rendering">
+      <div class="section-head">
+        <h2>Rendering</h2>
+        <p>Table operations with every row in the DOM, timed until the frame is painted.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="R1_create_1k">
+        <header class="card-head">
+          <span class="code">R1</span>
+          <div>
+            <h3>Create 1,000 rows</h3>
+            <p class="detail">From an empty table</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 20.8 ms median
+Mean 20.7 ms
+95% CI 20.1 ms – 21.4 ms
+p5–p95 18.3 ms – 21.9 ms
+CV 5.4%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:95.41%"></span><span class="ci" style="left:92.20%;width:5.96%"></span></span>
+          <span class="val">20.8 ms</span>
+          <span class="delta">+7%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Angular · 19.5 ms median
+Mean 19.5 ms
+95% CI 19.1 ms – 19.8 ms
+p5–p95 18.6 ms – 20.5 ms
+CV 2.7%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:89.45%"></span><span class="ci" style="left:87.61%;width:3.21%"></span></span>
+          <span class="val">19.5 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 21.4 ms median
+Mean 21.2 ms
+95% CI 20.5 ms – 21.8 ms
+p5–p95 15.2 ms – 24.0 ms
+CV 4.2%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:98.17%"></span><span class="ci" style="left:94.04%;width:5.96%"></span></span>
+          <span class="val">21.4 ms</span>
+          <span class="delta">+10%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R2_create_10k">
+        <header class="card-head">
+          <span class="code">R2</span>
+          <div>
+            <h3>Create 10,000 rows</h3>
+            <p class="detail">From an empty table</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 17.9 ms median
+Mean 17.8 ms
+95% CI 17.2 ms – 18.3 ms
+p5–p95 16.3 ms – 18.9 ms
+CV 4.5%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:86.06%"></span><span class="ci" style="left:82.69%;width:5.29%"></span></span>
+          <span class="val">17.9 ms</span>
+          <span class="delta">+3%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Angular · 17.3 ms median
+Mean 17.2 ms
+95% CI 17.0 ms – 17.6 ms
+p5–p95 16.2 ms – 25.2 ms
+CV 3.5%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:83.17%"></span><span class="ci" style="left:81.73%;width:2.88%"></span></span>
+          <span class="val">17.3 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 20.5 ms median
+Mean 20.4 ms
+95% CI 19.9 ms – 20.8 ms
+p5–p95 19.4 ms – 25.2 ms
+CV 4.3%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:98.56%"></span><span class="ci" style="left:95.67%;width:4.33%"></span></span>
+          <span class="val">20.5 ms</span>
+          <span class="delta">+18%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R3_update_10th">
+        <header class="card-head">
+          <span class="code">R3</span>
+          <div>
+            <h3>Update every 10th row</h3>
+            <p class="detail">10,000 rows</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 4.00 ms median
+Mean 4.03 ms
+95% CI 3.80 ms – 4.30 ms
+p5–p95 3.70 ms – 4.76 ms
+CV 6.6%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:27.78%"></span><span class="ci" style="left:26.39%;width:3.47%"></span></span>
+          <span class="val">4.00 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 5.00 ms median
+Mean 4.92 ms
+95% CI 4.90 ms – 5.00 ms
+p5–p95 4.80 ms – 5.30 ms
+CV 1.7%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:34.72%"></span><span class="ci" style="left:34.03%;width:0.69%"></span></span>
+          <span class="val">5.00 ms</span>
+          <span class="delta">+25%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 14.2 ms median
+Mean 14.2 ms
+95% CI 13.9 ms – 14.4 ms
+p5–p95 13.7 ms – 15.0 ms
+CV 3.0%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:98.61%"></span><span class="ci" style="left:96.53%;width:3.47%"></span></span>
+          <span class="val">14.2 ms</span>
+          <span class="delta">3.5×</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R4_replace_all">
+        <header class="card-head">
+          <span class="code">R4</span>
+          <div>
+            <h3>Replace all rows</h3>
+            <p class="detail">10,000 rows</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 13.1 ms median
+Mean 13.2 ms
+95% CI 12.9 ms – 13.3 ms
+p5–p95 12.7 ms – 14.1 ms
+CV 3.6%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:63.90%"></span><span class="ci" style="left:62.93%;width:1.95%"></span></span>
+          <span class="val">13.1 ms</span>
+          <span class="delta">+1%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Angular · 13.0 ms median
+Mean 13.0 ms
+95% CI 13.0 ms – 13.2 ms
+p5–p95 12.8 ms – 13.8 ms
+CV 1.0%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:63.41%"></span><span class="ci" style="left:63.41%;width:0.98%"></span></span>
+          <span class="val">13.0 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 20.2 ms median
+Mean 20.2 ms
+95% CI 19.9 ms – 20.5 ms
+p5–p95 19.6 ms – 21.4 ms
+CV 2.7%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:98.54%"></span><span class="ci" style="left:97.07%;width:2.93%"></span></span>
+          <span class="val">20.2 ms</span>
+          <span class="delta">+55%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R5_select_row">
+        <header class="card-head">
+          <span class="code">R5</span>
+          <div>
+            <h3>Select row</h3>
+            <p class="detail">Row 500 of 1,000</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 3.40 ms median
+Mean 3.39 ms
+95% CI 3.30 ms – 3.50 ms
+p5–p95 3.20 ms – 3.80 ms
+CV 4.8%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:79.07%"></span><span class="ci" style="left:76.74%;width:4.65%"></span></span>
+          <span class="val">3.40 ms</span>
+          <span class="delta">+3%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Angular · 3.30 ms median
+Mean 3.31 ms
+95% CI 3.30 ms – 3.40 ms
+p5–p95 3.20 ms – 3.60 ms
+CV 2.5%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:76.74%"></span><span class="ci" style="left:76.74%;width:2.33%"></span></span>
+          <span class="val">3.30 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 4.20 ms median
+Mean 4.19 ms
+95% CI 4.00 ms – 4.30 ms
+p5–p95 3.82 ms – 4.58 ms
+CV 6.1%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:97.67%"></span><span class="ci" style="left:93.02%;width:6.98%"></span></span>
+          <span class="val">4.20 ms</span>
+          <span class="delta">+27%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R6_swap_rows">
+        <header class="card-head">
+          <span class="code">R6</span>
+          <div>
+            <h3>Swap rows</h3>
+            <p class="detail">Rows 1 and 998 of 1,000</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 4.10 ms median
+Mean 4.12 ms
+95% CI 4.00 ms – 4.20 ms
+p5–p95 3.82 ms – 4.48 ms
+CV 4.2%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:75.93%"></span><span class="ci" style="left:74.07%;width:3.70%"></span></span>
+          <span class="val">4.10 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 4.30 ms median
+Mean 4.30 ms
+95% CI 4.20 ms – 4.40 ms
+p5–p95 4.20 ms – 4.96 ms
+CV 2.5%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:79.63%"></span><span class="ci" style="left:77.78%;width:3.70%"></span></span>
+          <span class="val">4.30 ms</span>
+          <span class="delta">+5%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 5.30 ms median
+Mean 5.28 ms
+95% CI 5.10 ms – 5.40 ms
+p5–p95 4.92 ms – 5.70 ms
+CV 4.8%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:98.15%"></span><span class="ci" style="left:94.44%;width:5.56%"></span></span>
+          <span class="val">5.30 ms</span>
+          <span class="delta">+29%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R7_remove_row">
+        <header class="card-head">
+          <span class="code">R7</span>
+          <div>
+            <h3>Remove row</h3>
+            <p class="detail">Row 500 of 1,000</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 3.30 ms median
+Mean 3.28 ms
+95% CI 3.20 ms – 3.40 ms
+p5–p95 3.00 ms – 3.50 ms
+CV 5.0%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:71.74%"></span><span class="ci" style="left:69.57%;width:4.35%"></span></span>
+          <span class="val">3.30 ms</span>
+          <span class="delta">+3%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Angular · 3.20 ms median
+Mean 3.19 ms
+95% CI 3.10 ms – 3.30 ms
+p5–p95 3.00 ms – 3.40 ms
+CV 4.4%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:69.57%"></span><span class="ci" style="left:67.39%;width:4.35%"></span></span>
+          <span class="val">3.20 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 4.50 ms median
+Mean 4.41 ms
+95% CI 4.20 ms – 4.60 ms
+p5–p95 3.92 ms – 4.80 ms
+CV 6.7%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:97.83%"></span><span class="ci" style="left:91.30%;width:8.70%"></span></span>
+          <span class="val">4.50 ms</span>
+          <span class="delta">+41%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R8_clear_rows">
+        <header class="card-head">
+          <span class="code">R8</span>
+          <div>
+            <h3>Clear rows</h3>
+            <p class="detail">10,000 rows</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 2.80 ms median
+Mean 2.85 ms
+95% CI 2.80 ms – 2.90 ms
+p5–p95 2.60 ms – 3.24 ms
+CV 3.5%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:59.57%"></span><span class="ci" style="left:59.57%;width:2.13%"></span></span>
+          <span class="val">2.80 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 4.50 ms median
+Mean 4.49 ms
+95% CI 4.40 ms – 4.70 ms
+p5–p95 4.32 ms – 4.98 ms
+CV 3.0%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:95.74%"></span><span class="ci" style="left:93.62%;width:6.38%"></span></span>
+          <span class="val">4.50 ms</span>
+          <span class="delta">+61%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 2.90 ms median
+Mean 2.90 ms
+95% CI 2.80 ms – 3.00 ms
+p5–p95 2.72 ms – 3.28 ms
+CV 5.4%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:61.70%"></span><span class="ci" style="left:59.57%;width:4.26%"></span></span>
+          <span class="val">2.90 ms</span>
+          <span class="delta">+4%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="R9_append_1k">
+        <header class="card-head">
+          <span class="code">R9</span>
+          <div>
+            <h3>Append 1,000 rows</h3>
+            <p class="detail">To 10,000 existing rows</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 3.90 ms median
+Mean 4.02 ms
+95% CI 3.80 ms – 4.30 ms
+p5–p95 3.72 ms – 4.30 ms
+CV 6.3%
+25 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:32.23%"></span><span class="ci" style="left:31.40%;width:4.13%"></span></span>
+          <span class="val">3.90 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 5.30 ms median
+Mean 5.25 ms
+95% CI 5.20 ms – 6.10 ms
+p5–p95 5.10 ms – 6.50 ms
+CV 4.1%
+25 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:43.80%"></span><span class="ci" style="left:42.98%;width:7.44%"></span></span>
+          <span class="val">5.30 ms</span>
+          <span class="delta">+36%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 11.6 ms median
+Mean 11.7 ms
+95% CI 11.4 ms – 12.1 ms
+p5–p95 10.9 ms – 13.8 ms
+CV 6.2%
+25 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:95.87%"></span><span class="ci" style="left:94.21%;width:5.79%"></span></span>
+          <span class="val">11.6 ms</span>
+          <span class="delta">3.0×</span>
+        </div>
+        </div>
+        
+      </article>
+      </div>
+    </section>
+    <section class="section" id="memory">
+      <div class="section-head">
+        <h2>Memory</h2>
+        <p>JS heap after two forced GCs, starting from a fresh page load.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="M1_idle_heap">
+        <header class="card-head">
+          <span class="code">M1</span>
+          <div>
+            <h3>Idle heap</h3>
+            <p class="detail">App loaded, table empty</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 3.88 MB median
+Mean 3.88 MB
+95% CI 3.88 MB – 3.88 MB
+p5–p95 3.88 MB – 3.88 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:72.52%"></span><span class="ci" style="left:72.52%;width:0.00%"></span></span>
+          <span class="val">3.88 MB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 5.35 MB median
+Mean 5.35 MB
+95% CI 5.34 MB – 5.35 MB
+p5–p95 5.34 MB – 5.36 MB
+CV 0.1%
+15 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:99.95%"></span><span class="ci" style="left:99.83%;width:0.17%"></span></span>
+          <span class="val">5.35 MB</span>
+          <span class="delta">+38%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 4.26 MB median
+Mean 4.26 MB
+95% CI 4.26 MB – 4.26 MB
+p5–p95 4.26 MB – 4.26 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:79.55%"></span><span class="ci" style="left:79.53%;width:0.03%"></span></span>
+          <span class="val">4.26 MB</span>
+          <span class="delta">+10%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="M2_heap_10k">
+        <header class="card-head">
+          <span class="code">M2</span>
+          <div>
+            <h3>Heap with 10,000 rows</h3>
+            <p class="detail">10,000 rows rendered</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 5.67 MB median
+Mean 5.67 MB
+95% CI 5.67 MB – 5.67 MB
+p5–p95 5.67 MB – 5.67 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span><span class="ci" style="left:99.99%;width:0.01%"></span></span>
+          <span class="val">5.67 MB</span>
+          <span class="delta">+26%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 5.43 MB median
+Mean 5.43 MB
+95% CI 5.43 MB – 5.43 MB
+p5–p95 5.43 MB – 5.44 MB
+CV 0.1%
+15 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:95.82%"></span><span class="ci" style="left:95.80%;width:0.09%"></span></span>
+          <span class="val">5.43 MB</span>
+          <span class="delta">+21%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 4.50 MB median
+Mean 4.50 MB
+95% CI 4.50 MB – 4.50 MB
+p5–p95 4.50 MB – 4.50 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:79.42%"></span><span class="ci" style="left:79.39%;width:0.03%"></span></span>
+          <span class="val">4.50 MB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="M3_heap_after_clear">
+        <header class="card-head">
+          <span class="code">M3</span>
+          <div>
+            <h3>Heap after clear</h3>
+            <p class="detail">Create 10,000 → clear</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 5.49 MB median
+Mean 5.49 MB
+95% CI 5.49 MB – 5.49 MB
+p5–p95 5.49 MB – 5.49 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span><span class="ci" style="left:100.00%;width:0.00%"></span></span>
+          <span class="val">5.49 MB</span>
+          <span class="delta">2.7×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 2.98 MB median
+Mean 2.98 MB
+95% CI 2.98 MB – 2.99 MB
+p5–p95 2.98 MB – 2.99 MB
+CV 0.1%
+15 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:54.33%"></span><span class="ci" style="left:54.26%;width:0.09%"></span></span>
+          <span class="val">2.98 MB</span>
+          <span class="delta">+44%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 2.07 MB median
+Mean 2.07 MB
+95% CI 2.07 MB – 2.07 MB
+p5–p95 2.07 MB – 2.07 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:37.73%"></span><span class="ci" style="left:37.73%;width:0.00%"></span></span>
+          <span class="val">2.07 MB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="M4_heap_5_cycles">
+        <header class="card-head">
+          <span class="code">M4</span>
+          <div>
+            <h3>Heap after 5 cycles</h3>
+            <p class="detail">5 × (create 10,000 → clear)</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 11.75 MB median
+Mean 11.75 MB
+95% CI 11.75 MB – 11.75 MB
+p5–p95 11.75 MB – 11.75 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:100.00%"></span><span class="ci" style="left:99.97%;width:0.03%"></span></span>
+          <span class="val">11.75 MB</span>
+          <span class="delta">5.7×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 3.03 MB median
+Mean 3.03 MB
+95% CI 3.02 MB – 3.03 MB
+p5–p95 3.02 MB – 3.03 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:25.75%"></span><span class="ci" style="left:25.74%;width:0.01%"></span></span>
+          <span class="val">3.03 MB</span>
+          <span class="delta">+45%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 2.08 MB median
+Mean 2.08 MB
+95% CI 2.08 MB – 2.08 MB
+p5–p95 2.08 MB – 2.08 MB
+CV 0.0%
+15 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:17.70%"></span><span class="ci" style="left:17.68%;width:0.02%"></span></span>
+          <span class="val">2.08 MB</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      </div>
+    </section>
+    <section class="section" id="reactivity">
+      <div class="section-head">
+        <h2>Reactivity</h2>
+        <p>State changes propagated through a 50-level component chain.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="S1_single_update">
+        <header class="card-head">
+          <span class="code">S1</span>
+          <div>
+            <h3>Single update</h3>
+            <p class="detail">Counter shown at every level</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 3.90 ms median
+Mean 3.88 ms
+95% CI 3.90 ms – 4.00 ms
+p5–p95 3.70 ms – 5.11 ms
+CV 2.8%
+50 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:96.30%"></span><span class="ci" style="left:96.30%;width:2.47%"></span></span>
+          <span class="val">3.90 ms</span>
+          <span class="delta">+22%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 4.00 ms median
+Mean 4.00 ms
+95% CI 4.00 ms – 4.05 ms
+p5–p95 3.80 ms – 4.46 ms
+CV 3.3%
+50 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:98.77%"></span><span class="ci" style="left:98.77%;width:1.23%"></span></span>
+          <span class="val">4.00 ms</span>
+          <span class="delta">+25%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 3.20 ms median
+Mean 3.19 ms
+95% CI 3.15 ms – 3.30 ms
+p5–p95 3.04 ms – 4.46 ms
+CV 4.1%
+50 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:79.01%"></span><span class="ci" style="left:77.78%;width:3.70%"></span></span>
+          <span class="val">3.20 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="S3_deep_propagation">
+        <header class="card-head">
+          <span class="code">S3</span>
+          <div>
+            <h3>Deep propagation</h3>
+            <p class="detail">Theme consumed at every level</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 3.10 ms median
+Mean 3.11 ms
+95% CI 3.10 ms – 3.20 ms
+p5–p95 3.00 ms – 6.40 ms
+CV 3.8%
+50 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:35.63%"></span><span class="ci" style="left:35.63%;width:1.15%"></span></span>
+          <span class="val">3.10 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 8.60 ms median
+Mean 8.61 ms
+95% CI 8.50 ms – 8.70 ms
+p5–p95 8.40 ms – 9.47 ms
+CV 1.7%
+50 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:98.85%"></span><span class="ci" style="left:97.70%;width:2.30%"></span></span>
+          <span class="val">8.60 ms</span>
+          <span class="delta">2.8×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 5.10 ms median
+Mean 5.10 ms
+95% CI 5.05 ms – 5.10 ms
+p5–p95 4.90 ms – 5.57 ms
+CV 2.4%
+50 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:58.62%"></span><span class="ci" style="left:58.05%;width:0.57%"></span></span>
+          <span class="val">5.10 ms</span>
+          <span class="delta">+65%</span>
+        </div>
+        </div>
+        
+      </article>
+      </div>
+    </section>
+    <section class="section" id="lifecycle">
+      <div class="section-head">
+        <h2>Lifecycle</h2>
+        <p>Mounting and unmounting 1,000 independent 3-level subtrees.</p>
+      </div>
+      <div class="grid">
+      <article class="card" id="C1_mount_1k">
+        <header class="card-head">
+          <span class="code">C1</span>
+          <div>
+            <h3>Mount 1,000 subtrees</h3>
+            <p class="detail">Into an empty container</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row is-best" tabindex="0" data-tip="React · 0.75 ms median
+Mean 0.76 ms
+95% CI 0.70 ms – 0.80 ms
+p5–p95 0.70 ms – 0.92 ms
+CV 9.1%
+20 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:0.98%"></span><span class="ci" style="left:0.92%;width:0.13%"></span></span>
+          <span class="val">0.75 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 75.3 ms median
+Mean 75.4 ms
+95% CI 74.3 ms – 76.3 ms
+p5–p95 73.4 ms – 79.1 ms
+CV 2.3%
+20 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:98.75%"></span><span class="ci" style="left:97.38%;width:2.62%"></span></span>
+          <span class="val">75.3 ms</span>
+          <span class="delta">100.5×</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Vue · 0.80 ms median
+Mean 0.82 ms
+95% CI 0.80 ms – 0.90 ms
+p5–p95 0.70 ms – 1.01 ms
+CV 10.2%
+20 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:1.05%"></span><span class="ci" style="left:1.05%;width:0.13%"></span></span>
+          <span class="val">0.80 ms</span>
+          <span class="delta">+7%</span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="C2_unmount_1k">
+        <header class="card-head">
+          <span class="code">C2</span>
+          <div>
+            <h3>Unmount 1,000 subtrees</h3>
+            <p class="detail">From 1,000 mounted</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 29.7 ms median
+Mean 30.1 ms
+95% CI 29.4 ms – 30.6 ms
+p5–p95 28.7 ms – 32.1 ms
+CV 3.5%
+20 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:74.81%"></span><span class="ci" style="left:73.93%;width:3.02%"></span></span>
+          <span class="val">29.7 ms</span>
+          <span class="delta">+1%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 39.1 ms median
+Mean 39.0 ms
+95% CI 38.7 ms – 39.7 ms
+p5–p95 38.3 ms – 43.2 ms
+CV 1.5%
+20 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:98.49%"></span><span class="ci" style="left:97.61%;width:2.39%"></span></span>
+          <span class="val">39.1 ms</span>
+          <span class="delta">+33%</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 29.4 ms median
+Mean 29.4 ms
+95% CI 29.1 ms – 29.6 ms
+p5–p95 28.7 ms – 31.3 ms
+CV 1.6%
+20 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:74.18%"></span><span class="ci" style="left:73.43%;width:1.26%"></span></span>
+          <span class="val">29.4 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      <article class="card" id="C3_mount_unmount_10x">
+        <header class="card-head">
+          <span class="code">C3</span>
+          <div>
+            <h3>Mount/unmount × 10</h3>
+            <p class="detail">10 × (mount 1,000 → unmount)</p>
+          </div>
+        </header>
+        <div class="rows">
+        <div class="row" tabindex="0" data-tip="React · 0.60 ms median
+Mean 0.60 ms
+95% CI 0.60 ms – 0.70 ms
+p5–p95 0.59 ms – 0.81 ms
+CV 0.0%
+20 samples">
+          <span class="fw"><span class="swatch fw-react"></span>React</span>
+          <span class="track"><span class="bar fw-react" style="width:21.82%"></span><span class="ci" style="left:21.82%;width:3.64%"></span></span>
+          <span class="val">0.60 ms</span>
+          <span class="delta">+0%</span>
+        </div>
+        <div class="row" tabindex="0" data-tip="Angular · 2.65 ms median
+Mean 2.65 ms
+95% CI 2.60 ms – 2.75 ms
+p5–p95 2.49 ms – 2.92 ms
+CV 5.4%
+20 samples">
+          <span class="fw"><span class="swatch fw-angular"></span>Angular</span>
+          <span class="track"><span class="bar fw-angular" style="width:96.36%"></span><span class="ci" style="left:94.55%;width:5.45%"></span></span>
+          <span class="val">2.65 ms</span>
+          <span class="delta">4.4×</span>
+        </div>
+        <div class="row is-best" tabindex="0" data-tip="Vue · 0.60 ms median
+Mean 0.56 ms
+95% CI 0.50 ms – 0.60 ms
+p5–p95 0.50 ms – 0.84 ms
+CV 9.2%
+20 samples">
+          <span class="fw"><span class="swatch fw-vue"></span>Vue</span>
+          <span class="track"><span class="bar fw-vue" style="width:21.82%"></span><span class="ci" style="left:18.18%;width:3.64%"></span></span>
+          <span class="val">0.60 ms</span>
+          <span class="delta"><span class="badge">Best</span></span>
+        </div>
+        </div>
+        
+      </article>
+      </div>
+    </section>
+    
+
+    <section class="section" id="table">
+      <div class="section-head">
+        <h2>All results</h2>
+        <p>Every metric in one table. ✓ marks the best result; ties are not marked.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Metric <span class="muted">(median, lower is better)</span></th><th scope="col"><span class="swatch fw-react"></span>React</th><th scope="col"><span class="swatch fw-angular"></span>Angular</th><th scope="col"><span class="swatch fw-vue"></span>Vue</th></tr></thead>
+          <tbody>
+          <tr><th scope="row"><span class="code">B1</span>Bundle size (raw)</th><td class="num">231.5 KB</td><td class="num">165.6 KB</td><td class="num is-best">77.6 KB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">B2</span>Bundle size (gzip)</th><td class="num">73.1 KB</td><td class="num">56.4 KB</td><td class="num is-best">30.9 KB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">B3</span>Bundle size (brotli)</th><td class="num">62.8 KB</td><td class="num">50.3 KB</td><td class="num is-best">27.7 KB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">B5</span>Production build</th><td class="num">1.30 s</td><td class="num">4.93 s</td><td class="num is-best">1.12 s <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">L1</span>First Contentful Paint</th><td class="num is-best">600 ms <span class="check" aria-label="best">✓</span></td><td class="num">756 ms</td><td class="num">604 ms</td></tr>
+          <tr><th scope="row"><span class="code">L2</span>Largest Contentful Paint</th><td class="num is-best">600 ms <span class="check" aria-label="best">✓</span></td><td class="num">756 ms</td><td class="num">604 ms</td></tr>
+          <tr><th scope="row"><span class="code">L3</span>Time to Interactive</th><td class="num is-best">496 ms <span class="check" aria-label="best">✓</span></td><td class="num">711 ms</td><td class="num">557 ms</td></tr>
+          <tr><th scope="row"><span class="code">L4</span>Total Blocking Time</th><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td></tr>
+          <tr><th scope="row"><span class="code">R1</span>Create 1,000 rows</th><td class="num">20.8 ms</td><td class="num is-best">19.5 ms <span class="check" aria-label="best">✓</span></td><td class="num">21.4 ms</td></tr>
+          <tr><th scope="row"><span class="code">R2</span>Create 10,000 rows</th><td class="num">17.9 ms</td><td class="num is-best">17.3 ms <span class="check" aria-label="best">✓</span></td><td class="num">20.5 ms</td></tr>
+          <tr><th scope="row"><span class="code">R3</span>Update every 10th row</th><td class="num is-best">4.00 ms <span class="check" aria-label="best">✓</span></td><td class="num">5.00 ms</td><td class="num">14.2 ms</td></tr>
+          <tr><th scope="row"><span class="code">R4</span>Replace all rows</th><td class="num">13.1 ms</td><td class="num is-best">13.0 ms <span class="check" aria-label="best">✓</span></td><td class="num">20.2 ms</td></tr>
+          <tr><th scope="row"><span class="code">R5</span>Select row</th><td class="num">3.40 ms</td><td class="num is-best">3.30 ms <span class="check" aria-label="best">✓</span></td><td class="num">4.20 ms</td></tr>
+          <tr><th scope="row"><span class="code">R6</span>Swap rows</th><td class="num is-best">4.10 ms <span class="check" aria-label="best">✓</span></td><td class="num">4.30 ms</td><td class="num">5.30 ms</td></tr>
+          <tr><th scope="row"><span class="code">R7</span>Remove row</th><td class="num">3.30 ms</td><td class="num is-best">3.20 ms <span class="check" aria-label="best">✓</span></td><td class="num">4.50 ms</td></tr>
+          <tr><th scope="row"><span class="code">R8</span>Clear rows</th><td class="num is-best">2.80 ms <span class="check" aria-label="best">✓</span></td><td class="num">4.50 ms</td><td class="num">2.90 ms</td></tr>
+          <tr><th scope="row"><span class="code">R9</span>Append 1,000 rows</th><td class="num is-best">3.90 ms <span class="check" aria-label="best">✓</span></td><td class="num">5.30 ms</td><td class="num">11.6 ms</td></tr>
+          <tr><th scope="row"><span class="code">M1</span>Idle heap</th><td class="num is-best">3.88 MB <span class="check" aria-label="best">✓</span></td><td class="num">5.35 MB</td><td class="num">4.26 MB</td></tr>
+          <tr><th scope="row"><span class="code">M2</span>Heap with 10,000 rows</th><td class="num">5.67 MB</td><td class="num">5.43 MB</td><td class="num is-best">4.50 MB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">M3</span>Heap after clear</th><td class="num">5.49 MB</td><td class="num">2.98 MB</td><td class="num is-best">2.07 MB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">M4</span>Heap after 5 cycles</th><td class="num">11.75 MB</td><td class="num">3.03 MB</td><td class="num is-best">2.08 MB <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">S1</span>Single update</th><td class="num">3.90 ms</td><td class="num">4.00 ms</td><td class="num is-best">3.20 ms <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">S3</span>Deep propagation</th><td class="num is-best">3.10 ms <span class="check" aria-label="best">✓</span></td><td class="num">8.60 ms</td><td class="num">5.10 ms</td></tr>
+          <tr><th scope="row"><span class="code">C1</span>Mount 1,000 subtrees</th><td class="num is-best">0.75 ms <span class="check" aria-label="best">✓</span></td><td class="num">75.3 ms</td><td class="num">0.80 ms</td></tr>
+          <tr><th scope="row"><span class="code">C2</span>Unmount 1,000 subtrees</th><td class="num">29.7 ms</td><td class="num">39.1 ms</td><td class="num is-best">29.4 ms <span class="check" aria-label="best">✓</span></td></tr>
+          <tr><th scope="row"><span class="code">C3</span>Mount/unmount × 10</th><td class="num">0.60 ms</td><td class="num">2.65 ms</td><td class="num is-best">0.60 ms <span class="check" aria-label="best">✓</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <span>Generated 2026-09-28 12:13 UTC</span>
+      <span><a href="https://github.com/mokhovyk/frontend-framework-comparison/blob/main/docs/METHODOLOGY.md">Methodology</a> · <a href="https://github.com/mokhovyk/frontend-framework-comparison">Source on GitHub</a></span>
+    </div>
+  </footer>
+
+  <div class="tooltip" role="tooltip" hidden></div>
   <script>
-    const specs = [{"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"B1 bundle raw","width":400,"height":250,"data":{"values":[{"framework":"react","value":237096},{"framework":"angular","value":169541},{"framework":"vue","value":79451}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"B2 bundle gzip","width":400,"height":250,"data":{"values":[{"framework":"react","value":74813},{"framework":"angular","value":57744},{"framework":"vue","value":31664}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"B3 bundle brotli","width":400,"height":250,"data":{"values":[{"framework":"react","value":64335},{"framework":"angular","value":51540},{"framework":"vue","value":28398}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"B5 prod build","width":400,"height":250,"data":{"values":[{"framework":"react","value":1297.8631445},{"framework":"angular","value":4925.9880565},{"framework":"vue","value":1122.4716094999999}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"L1 fcp","width":400,"height":250,"data":{"values":[{"framework":"react","value":600},{"framework":"angular","value":756},{"framework":"vue","value":604}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"L2 lcp","width":400,"height":250,"data":{"values":[{"framework":"react","value":600},{"framework":"angular","value":756},{"framework":"vue","value":604}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"L3 tti","width":400,"height":250,"data":{"values":[{"framework":"react","value":495.8999999999651},{"framework":"angular","value":710.6999999999534},{"framework":"vue","value":556.6999999999534}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"L4 tbt","width":400,"height":250,"data":{"values":[{"framework":"react","value":0},{"framework":"angular","value":0},{"framework":"vue","value":0}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R1 create 1k","width":400,"height":250,"data":{"values":[{"framework":"react","value":20.79999999998836},{"framework":"angular","value":19.5},{"framework":"vue","value":21.399999999906868}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R2 create 10k","width":400,"height":250,"data":{"values":[{"framework":"react","value":17.900000000023283},{"framework":"angular","value":17.300000000046566},{"framework":"vue","value":20.5}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R3 update 10th","width":400,"height":250,"data":{"values":[{"framework":"react","value":4},{"framework":"angular","value":5},{"framework":"vue","value":14.199999999720603}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R4 replace all","width":400,"height":250,"data":{"values":[{"framework":"react","value":13.099999999976717},{"framework":"angular","value":13},{"framework":"vue","value":20.199999999720603}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R5 select row","width":400,"height":250,"data":{"values":[{"framework":"react","value":3.400000000023283},{"framework":"angular","value":3.300000000046566},{"framework":"vue","value":4.2000000001862645}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R6 swap rows","width":400,"height":250,"data":{"values":[{"framework":"react","value":4.100000000093132},{"framework":"angular","value":4.300000000046566},{"framework":"vue","value":5.2999999998137355}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R7 remove row","width":400,"height":250,"data":{"values":[{"framework":"react","value":3.300000000046566},{"framework":"angular","value":3.199999999953434},{"framework":"vue","value":4.5}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R8 clear rows","width":400,"height":250,"data":{"values":[{"framework":"react","value":2.800000000046566},{"framework":"angular","value":4.5},{"framework":"vue","value":2.900000000372529}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"R9 append 1k","width":400,"height":250,"data":{"values":[{"framework":"react","value":3.900000000023283},{"framework":"angular","value":5.2999999998137355},{"framework":"vue","value":11.600000000093132}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"M1 idle heap","width":400,"height":250,"data":{"values":[{"framework":"react","value":4071472},{"framework":"angular","value":5611152},{"framework":"vue","value":4466056}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"M2 heap 10k","width":400,"height":250,"data":{"values":[{"framework":"react","value":5942580},{"framework":"angular","value":5694448},{"framework":"vue","value":4719588}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"M3 heap after clear","width":400,"height":250,"data":{"values":[{"framework":"react","value":5758352},{"framework":"angular","value":3128408},{"framework":"vue","value":2172544}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"M4 heap 5 cycles","width":400,"height":250,"data":{"values":[{"framework":"react","value":12319416},{"framework":"angular","value":3172316},{"framework":"vue","value":2180316}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"bytes"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"S1 single update","width":400,"height":250,"data":{"values":[{"framework":"react","value":3.900000000023283},{"framework":"angular","value":4},{"framework":"vue","value":3.2000000001862645}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"S3 deep propagation","width":400,"height":250,"data":{"values":[{"framework":"react","value":3.099999999976717},{"framework":"angular","value":8.600000000093132},{"framework":"vue","value":5.100000000093132}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"C1 mount 1k","width":400,"height":250,"data":{"values":[{"framework":"react","value":0.7500000001164153},{"framework":"angular","value":75.34999999997672},{"framework":"vue","value":0.7999999998137355}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"C2 unmount 1k","width":400,"height":250,"data":{"values":[{"framework":"react","value":29.70000000006985},{"framework":"angular","value":39.09999999997672},{"framework":"vue","value":29.449999999953434}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}},
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","title":"C3 mount unmount 10x","width":400,"height":250,"data":{"values":[{"framework":"react","value":0.6000000000931323},{"framework":"angular","value":2.650000000023283},{"framework":"vue","value":0.599999999627471}]},"mark":"bar","encoding":{"x":{"field":"framework","type":"nominal","sort":null},"y":{"field":"value","type":"quantitative","title":"ms"},"color":{"field":"framework","type":"nominal","scale":{"domain":["react","angular","vue"],"range":["#61dafb","#dd0031","#42b883"]}}}}];
-    specs.forEach((spec, i) => {
-      vegaEmbed('#chart-' + i, spec, { theme: 'dark', actions: false });
-    });
-  </script>
+(() => {
+  const root = document.documentElement;
+  document.querySelector('.theme-toggle').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('theme', root.dataset.theme); } catch {}
+  });
+
+  const tip = document.querySelector('.tooltip');
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    const left = Math.min(x + 14, innerWidth - r.width - 8);
+    const top = y + r.height + 20 > innerHeight ? y - r.height - 12 : y + 16;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = top + 'px';
+  };
+  const show = (el) => { tip.textContent = el.dataset.tip; tip.hidden = false; };
+  document.querySelectorAll('[data-tip]').forEach((el) => {
+    el.addEventListener('pointerenter', (e) => { show(el); place(e.clientX, e.clientY); });
+    el.addEventListener('pointermove', (e) => place(e.clientX, e.clientY));
+    el.addEventListener('pointerleave', () => { tip.hidden = true; });
+    el.addEventListener('focus', () => { show(el); const r = el.getBoundingClientRect(); place(r.left + r.width / 2, r.bottom); });
+    el.addEventListener('blur', () => { tip.hidden = true; });
+  });
+})();
+</script>
 </body>
 </html>
