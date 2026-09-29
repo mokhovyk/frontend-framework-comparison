@@ -5,7 +5,7 @@ A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 22+, pnpm 9+
+# Prerequisites: Node.js 24+, pnpm 9+
 pnpm install
 pnpm build:all
 pnpm --filter bench-harness exec playwright install chromium

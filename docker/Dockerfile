@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 # pnpm comes from the "packageManager" field in package.json (pinned version)
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
