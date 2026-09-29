@@ -10,7 +10,7 @@ const CHART_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444'];
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<number[]>([]);
-  const [tableRows, setTableRows] = useState<number[][]>([]);
+  const [, setTableRows] = useState<number[][]>([]);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([null, null, null, null]);
 
   useEffect(() => {

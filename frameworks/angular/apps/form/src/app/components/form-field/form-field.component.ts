@@ -14,6 +14,7 @@ import type { FormField } from 'shared-data';
           <input
             type="text"
             [id]="field().name"
+            [name]="field().name"
             [formControl]="control()"
             [placeholder]="field().placeholder ?? ''"
             [class.invalid]="showError"
@@ -23,6 +24,7 @@ import type { FormField } from 'shared-data';
           <label [for]="field().name">{{ field().label }}</label>
           <select
             [id]="field().name"
+            [name]="field().name"
             [formControl]="control()"
             [class.invalid]="showError"
           >
@@ -38,6 +40,7 @@ import type { FormField } from 'shared-data';
               <input
                 type="checkbox"
                 [id]="field().name"
+                [name]="field().name"
                 [formControl]="control()"
               />
               {{ field().label }}
@@ -65,6 +68,7 @@ import type { FormField } from 'shared-data';
           <input
             type="date"
             [id]="field().name"
+            [name]="field().name"
             [formControl]="control()"
             [class.invalid]="showError"
           />
@@ -73,6 +77,7 @@ import type { FormField } from 'shared-data';
           <label [for]="field().name">{{ field().label }}</label>
           <textarea
             [id]="field().name"
+            [name]="field().name"
             [formControl]="control()"
             [placeholder]="field().placeholder ?? ''"
             [class.invalid]="showError"
@@ -83,6 +88,7 @@ import type { FormField } from 'shared-data';
           <input
             type="file"
             [id]="field().name"
+            [name]="field().name"
             (change)="onFileChange($event)"
             [class.invalid]="showError"
           />

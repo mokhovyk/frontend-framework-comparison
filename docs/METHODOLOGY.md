@@ -2,69 +2,137 @@
 
 ## Overview
 
-This benchmark suite measures real-world frontend framework performance under controlled, reproducible conditions. Every methodological decision is documented here.
+This benchmark suite measures real-world frontend framework performance under controlled, reproducible conditions. Every methodological decision is documented here; if the code and this document disagree, that is a bug.
 
 ## Environment
 
-All benchmarks run inside a Docker container with pinned versions:
+All published benchmarks run inside a Docker container (`docker/Dockerfile`):
 
-- **OS**: Debian Bookworm (slim)
-- **Node.js**: 22 LTS
-- **Chrome**: Pinned version in Dockerfile
-- **CPU**: 2 cores (via `--cpus=2`)
-- **RAM**: 4 GB (via `--memory=4g`)
-- **Display**: Xvfb at 1920×1080
+- **OS / Node.js**: `node:22-bookworm-slim`
+- **Browser**: Playwright's bundled Chromium, installed with `playwright install --with-deps chromium`, so the browser always matches the Playwright/CDP version pinned in `pnpm-lock.yaml`. Runs in Chromium's new headless mode. Set `CHROME_BIN` to use a different binary.
+- **CPU / RAM**: 2 cores, 4 GB (`--cpus=2 --memory=4g`)
+- **Viewport**: 1920×1080
 
-## Measurement Categories
+Every result file records the commit, the exact framework versions (read from each framework's `node_modules`), the Chromium version, the Node.js version and the suite configuration in `meta`.
 
-### Build & Bundle (B1–B6)
+## The benchmark hook contract
 
-Bundle sizes are measured by running a production build, then computing raw, gzip (-9), and brotli (-q 11) sizes of all JS/CSS output files. Source maps are excluded.
+Each app exposes `window.__benchmark` hooks (typed as `BenchmarkHooks` / `NestedTreeBenchmarkHooks` in `packages/shared-data/src/types.ts`). **When a hook returns, or its returned promise resolves, the framework must already have committed the resulting DOM changes:**
 
-Build times use `process.hrtime.bigint()` with 10 runs, median reported. Caches are cleared between runs.
+| Framework | How hooks commit |
+| --- | --- |
+| React | `flushSync(() => setState(...))` |
+| Vue | mutate state, then `await nextTick()` |
+| Angular | update signals, then `ApplicationRef.tick()` |
 
-### Loading Performance (L1–L4)
+This mirrors how each framework handles a discrete user event such as a click. It means the harness times "call → DOM committed → next paint" the same way for every framework, instead of racing three different schedulers (React's MessageChannel scheduler, Vue's microtask queue, Angular's rAF/setTimeout race). It also stops sequences like mount → unmount from being batched into a no-op. `packages/parity-tests/src/benchmark-hooks.spec.ts` enforces the contract: it reads the DOM in the same task a hook resolves in, and checks the data against the shared generators.
 
-Loading metrics use Playwright with Chrome DevTools Protocol. CPU throttling (4x) is applied via CDP. Measurements use `PerformanceObserver` for paint timing and long tasks.
+## Measurement categories
 
-21 runs per configuration, median reported.
+Sample counts are given as *full / reduced* (`BENCHMARK_REDUCED=true`). They are totals across all rounds (see [Execution order](#execution-order)), rounded up to a multiple of the round count; for example, 25 rendering samples over 3 rounds gives 3 × 9 = 27. Warm-up samples are discarded at the start of every round.
 
-### Runtime Rendering (R1–R9)
+### Build & bundle (B1–B3, B5)
 
-The standard js-framework-benchmark approach: `performance.now()` marks the start, `requestAnimationFrame` + `setTimeout(0)` detects when the browser has actually painted.
+- **B1–B3**: raw, gzip (level 9) and brotli (quality 11) sizes of all JS/CSS files in the table app's production build. Source maps are excluded.
+- **B5**: production build time of the table app, measured with `process.hrtime.bigint()`. Build caches (`.angular/cache`, `node_modules/.vite`, …) are cleared before every build. One warm-up build per framework is discarded (it absorbs cold OS file-cache effects). The measured builds are interleaved: build *i* runs every framework, in an order rotated by *i*. 10 / 5 samples.
 
-25 runs per benchmark, first 5 discarded as warm-up. Between operations: forced GC + 500ms wait.
+### Loading (L1–L5)
 
-### Memory (M1–M5)
+Cold load of the table app with its default pagination (50 visible rows). Each sample uses a fresh browser with 4× CPU throttling (`Emulation.setCPUThrottlingRate`). `PerformanceObserver`s for `paint`, `largest-contentful-paint` and `longtask` are installed with `addInitScript`, before any app script runs. Long-task entries are *not* kept in the performance timeline (`getEntriesByType('longtask')` is always empty), so they have to be observed live. After `networkidle`, the harness waits for a 5-second window with no long tasks (30 s at most).
 
-Chrome DevTools Protocol `Runtime.getHeapUsage()` after double forced GC with 1-second pause. 10 runs, median reported.
+| Metric | Definition |
+| --- | --- |
+| L1 FCP | `first-contentful-paint` |
+| L2 LCP | last `largest-contentful-paint` entry. Runs without an entry are dropped and reported; there is no fallback to FCP. |
+| L3 TTI | Lighthouse definition: starting at FCP, the end of the last long task before the first 5-second window without long tasks. Never earlier than DOMContentLoaded. |
+| L4 TBT | Sum of the portion of each long task beyond 50 ms, clipped to [FCP, TTI] |
+| L5 Boot blocking | The same sum, clipped to [navigation start, TTI] |
 
-### Reactivity (S1–S5)
+These apps boot and render in a single task *before* first paint, so under the standard definitions TBT is often legitimately 0 and TTI ≈ FCP (and LCP = FCP when the whole table appears in the first frame). L5 is where framework startup cost shows up in that case. 21 / 10 samples; 1 warm-up per round, because every sample is already a cold browser.
 
-Custom harness with `MutationObserver` + `requestAnimationFrame` for paint detection. 50 runs, median reported.
+### Runtime rendering (R1–R9)
 
-### Component Lifecycle (C1–C3)
+The table app is loaded with `?pageSize=all`, so **every row is in the DOM**; nothing is paginated away. Each sample:
 
-Same paint-detection harness as rendering benchmarks. 20 runs, median reported.
+1. Calls `clearRows()`, then the setup hook, both committed.
+2. Forces a GC (`HeapProfiler.collectGarbage`), so garbage from the previous sample isn't collected inside the timed window.
+3. Times `performance.now()` → `await hook()` (DOM committed) → `requestAnimationFrame` + `setTimeout(0)` (the frame has been painted).
 
-## Statistical Analysis
+| Metric | Setup | Timed operation |
+| --- | --- | --- |
+| R1 | — | create 1,000 rows |
+| R2 | — | create 10,000 rows |
+| R3 | 10,000 rows | update every 10th row |
+| R4 | 10,000 rows | replace all rows |
+| R5 | 1,000 rows | select row 500 |
+| R6 | 1,000 rows | swap rows 1 and 998 |
+| R7 | 1,000 rows | remove row 500 |
+| R8 | 10,000 rows | clear all rows |
+| R9 | 10,000 rows | append 1,000 rows |
 
-- **Primary metric**: Median (robust to outliers)
-- **Confidence intervals**: 95% CI via bootstrap (10,000 resamples)
-- **Outlier detection**: Modified Z-score (threshold: 3.5)
-- **Variance threshold**: CV must be ≤5% or the suite flags a warning
-- **Comparison threshold**: Differences <2% are reported as "statistically indistinguishable"
+After the first sample of each benchmark, the harness checks that the number of rows in the DOM matches the expected count. It fails loudly if pagination or an uncommitted update would make the benchmark measure nothing. As in js-framework-benchmark, row data generation happens inside the hook, so it is part of the timing. It's the same seeded generator for every framework. 25 / 10 samples (reduced mode runs R1–R4 only).
 
-## Execution Order
+### Memory (M1–M4)
 
-Benchmarks run in ABCD then DCBA order to detect systematic drift. If results diverge by >3%, the suite flags a warning.
+Every sample starts from a fresh page load (`?pageSize=all`), with the app's initial rows cleared. The measurement is CDP `Runtime.getHeapUsage()` after two forced GCs 1 s apart.
 
-## Fairness
+| Metric | State measured |
+| --- | --- |
+| M1 | idle: app loaded, table empty (framework + app baseline) |
+| M2 | 10,000 rows rendered |
+| M3 | after create 10,000 → clear (M3 − M1 ≈ retained memory) |
+| M4 | after 5 × (create 10,000 → clear) (growth vs. M3 indicates a leak) |
 
-See the [Fairness Checklist](../spec.md#7-fairness-checklist) in the specification. Key points:
+15 / 7 samples; 1 warm-up per round.
 
-- Identical data generators (seeded PRNG, same seed)
-- Identical CSS (shared package)
-- Identical DOM structure (verified by parity tests)
-- No framework-specific optimizations unless idiomatic and documented
-- Each framework uses its recommended toolchain with default configuration
+### Reactivity (S1, S3)
+
+The nested-tree app (a 50-level component chain). **S1**: increment a counter that every level displays. **S3**: toggle a theme that every level consumes (React context, Vue provide/inject, Angular service signal). Timed the same way as R1–R9. 50 / 25 samples.
+
+### Component lifecycle (C1–C3)
+
+The nested-tree app's `#lifecycle-container`, holding 1,000 independent 3-level subtrees.
+
+- **C1**: mount 1,000, starting from an empty committed container.
+- **C2**: unmount 1,000, starting from 1,000 committed.
+- **C3**: 10 × (mount 1,000 → unmount), each step committed, with one paint at the end.
+
+The first sample of C1 and C2 checks that the container really filled or emptied. 20 / 10 samples.
+
+## Implementation parity
+
+- Identical seeded data generators, including shared seeds for `replaceAllRows` and `appendRows` (`packages/shared-data/src/benchmark.ts`), and identical CSS.
+- Identical hook semantics: `createRows`, `replaceAllRows` and `clearRows` reset selection and page, and `selectRow` sets (it doesn't toggle). The parity tests verify this.
+- Each table uses its framework's standard row-level update optimization: `React.memo` rows with stable callbacks, Vue `v-memo`, and Angular `OnPush`. Vue holds rows in a `shallowRef`, because rows are replaced immutably exactly as with React state and Angular signals.
+- Each framework uses its recommended toolchain (Vite for React/Vue, Angular CLI) with default production configuration.
+
+## Execution order
+
+Browser suites are split into **rounds** (`BENCHMARK_ROUNDS`, default 3). Each round launches a fresh browser per framework, and the framework order rotates every round, forming a Latin square:
+
+| Round | Order |
+| --- | --- |
+| 1 | React → Angular → Vue |
+| 2 | Angular → Vue → React |
+| 3 | Vue → React → Angular |
+
+Each framework runs first, second and third equally often, so slow drift (thermal throttling, noisy neighbours) can't systematically favour one of them. Samples from all rounds are pooled. Per-round medians are stored as `roundMedians`, and the suite warns when their spread exceeds twice the metric's CV threshold (possible drift).
+
+## Statistical analysis
+
+- **Primary metric**: the median.
+- **Confidence interval**: bootstrap 95% CI of the median (10,000 resamples).
+- **Dispersion**: `stddev`, and `cv` = stddev / mean, over **all** samples. Nothing is trimmed.
+- **Outliers**: counted with the modified Z-score (threshold 3.5) and reported as `outliers`. They are never removed.
+- **Variance threshold** (CV, ×1.5 in reduced mode):
+
+  | bundle | build | loading | rendering | memory | reactivity | lifecycle |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | 2% | 10% | 15% | 12% | 25% | 12% | 20% |
+
+- **High variance**: for every framework/app with a category over its threshold, one extra round is run and its samples are **pooled** with the originals (`retried: true`). Runs are never swapped for a lower-variance retry. If variance is still high, the suite exits 1, unless `BENCHMARK_FAIL_ON_VARIANCE=false`.
+- **Framework comparisons** (`comparisons` in the results): for every metric and framework pair, a two-sided Mann-Whitney U test. A pair counts as different only if p < 0.05 **and** the medians differ by at least 2%. Otherwise it is reported as indistinguishable.
+
+## Regression checks on pull requests
+
+The PR workflow builds and benchmarks the PR's **base and head on the same runner**, one after the other, in reduced mode with a single round. A metric counts as a regression when the head median is more than 10% worse **and** a Mann-Whitney U test gives p < 0.05. Single-value metrics such as bundle size use the threshold only. When a PR changes `packages/bench-harness/src`, base and head were measured with different code, so the gate is advisory only.

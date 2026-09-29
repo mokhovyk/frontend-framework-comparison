@@ -14,12 +14,12 @@
 1. Define the metric in `spec.md`
 2. Implement the measurement in `packages/bench-harness/src/metrics/`
 3. Add the metric to the runner
-4. If needed, add `window.__benchmark` hooks to all framework apps
+4. If needed, add `window.__benchmark` hooks to all framework apps. Hooks must commit their DOM changes before returning or resolving (see [the hook contract](./METHODOLOGY.md#the-benchmark-hook-contract)), and need a test in `packages/parity-tests/src/benchmark-hooks.spec.ts`.
 5. Update `METHODOLOGY.md` with measurement justification
 
 ## Modifying an App
 
-1. Apply the same change to all 4 framework implementations
+1. Apply the same change to all 3 framework implementations
 2. Run parity tests: `pnpm test:parity`
 3. Ensure no framework gets an unfair advantage
 4. Review the [Fairness Checklist](../spec.md#7-fairness-checklist)
@@ -30,14 +30,17 @@
 # Install
 pnpm install
 
-# Build shared packages
-pnpm --filter shared-data build
+# Build everything (shared packages, harness, all apps)
+pnpm build:all
 
 # Dev a specific framework app
 cd frameworks/react
-APP=table pnpm dev
+pnpm dev:table
 
-# Run parity tests
+# Checks
+pnpm lint && pnpm typecheck && pnpm test:unit
+
+# Run parity tests (serves every built app on the harness ports)
 pnpm test:parity
 
 # Run benchmarks locally
@@ -54,4 +57,5 @@ docker compose -f docker/docker-compose.yml up benchmark
 - [ ] Idiomatic code for each framework
 - [ ] Shared CSS only
 - [ ] TypeScript strict mode
-- [ ] Parity tests pass
+- [ ] Parity tests pass (including `benchmark-hooks.spec.ts`)
+- [ ] Lint, typecheck and harness unit tests pass

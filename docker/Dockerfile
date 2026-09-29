@@ -1,25 +1,13 @@
 FROM node:22-bookworm-slim
 
-# Install Chrome and dependencies for headless rendering
-RUN apt-get update && apt-get install -y \
-    chromium \
-    fonts-liberation \
-    xvfb \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Set Chrome environment variables
-ENV CHROME_BIN=/usr/bin/chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV DISPLAY=:99
+# pnpm comes from the "packageManager" field in package.json (pinned version)
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 
 WORKDIR /app
 
 # Copy workspace config first for better layer caching
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
 # Copy all package.json files for dependency installation
 COPY packages/shared-data/package.json packages/shared-data/
@@ -31,17 +19,16 @@ COPY frameworks/react/package.json frameworks/react/
 COPY frameworks/angular/package.json frameworks/angular/
 COPY frameworks/vue/package.json frameworks/vue/
 
-RUN pnpm install --frozen-lockfile || pnpm install
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Playwright's own Chromium build (and its system libraries), so the browser
+# always matches the Playwright/CDP version pinned in the lockfile.
+RUN pnpm --filter bench-harness exec playwright install --with-deps chromium
+
+# Copy source code (see .dockerignore — host node_modules/dist are excluded)
 COPY . .
 
-# Build shared packages
-RUN pnpm --filter shared-data build && pnpm --filter shared-css build
+# Build the harness at image build time so the image can also run compare-cli
+RUN pnpm --filter shared-data build && pnpm --filter bench-harness build
 
-# Entrypoint with Xvfb for headless rendering
-COPY docker/xvfb-entrypoint.sh /usr/local/bin/xvfb-entrypoint.sh
-RUN chmod +x /usr/local/bin/xvfb-entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/xvfb-entrypoint.sh"]
 CMD ["pnpm", "run", "benchmark"]

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { StatResult } from './stats.js';
 
@@ -15,7 +15,24 @@ export interface BenchmarkResult {
   ci95_lower?: number;
   ci95_upper?: number;
   cv?: number;
+  /** Samples flagged by modified Z-score > 3.5 (informational; never removed) */
+  outliers?: number;
+  /** Median of each round, in round order — spread indicates drift */
+  roundMedians?: number[];
+  /** True when an extra round was pooled in after a high-variance first pass */
+  retried?: boolean;
   runs?: number[];
+}
+
+export interface Comparison {
+  a: string;
+  b: string;
+  /** (median_b − median_a) / median_a */
+  diff: number;
+  /** Two-sided Mann-Whitney U p-value (absent for single-value metrics) */
+  pValue?: number;
+  /** Framework with the lower (better) value, or null when indistinguishable */
+  better: string | null;
 }
 
 export interface FullBenchmarkResults {
@@ -26,8 +43,12 @@ export interface FullBenchmarkResults {
     chromeVersion: string;
     nodeVersion: string;
     frameworks: Record<string, string>;
+    /** Suite configuration used for this run */
+    config?: { reduced: boolean; rounds: number; warmup: number };
   };
   results: Record<string, Record<string, BenchmarkResult>>;
+  /** Pairwise framework comparisons per metric */
+  comparisons?: Record<string, Comparison[]>;
 }
 
 /**
@@ -47,10 +68,10 @@ export function writeResults(results: FullBenchmarkResults, outputDir: string): 
   const latestPath = join(outputDir, 'latest.json');
   writeFileSync(latestPath, JSON.stringify(results, null, 2));
 
-  // Write timestamped archive
-  const date = results.meta.timestamp.split('T')[0];
+  // Write timestamped archive (full timestamp so same-day runs don't overwrite each other)
+  const stamp = results.meta.timestamp.replace(/\.\d+Z$/, 'Z').replace(/:/g, '-');
   const commit = results.meta.commit.substring(0, 7);
-  const archivePath = join(archiveDir, `${date}-${commit}.json`);
+  const archivePath = join(archiveDir, `${stamp}-${commit}.json`);
   writeFileSync(archivePath, JSON.stringify(results, null, 2));
 
   return latestPath;
@@ -71,6 +92,7 @@ export function statToResult(stat: StatResult, unit: string): BenchmarkResult {
     ci95_lower: stat.ci95_lower,
     ci95_upper: stat.ci95_upper,
     cv: stat.cv,
+    outliers: stat.outliers,
     unit,
     runs: stat.runs,
   };

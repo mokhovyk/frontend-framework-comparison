@@ -1,14 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './helpers.js';
 
 test.describe('Router App Parity', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, 'router');
   });
 
   test('sidebar has links to all pages', async ({ page }) => {
-    const navLinks = await page.$$('.sidebar nav a');
-    expect(navLinks.length).toBeGreaterThanOrEqual(10);
+    // 9 page links in the nav (login and 404 are not linked from it)
+    const labels = await page.$$eval('.sidebar nav a', (links) => links.map((a) => a.textContent?.trim() ?? ''));
+    expect(labels.map((l) => l.replace(/\s+.*$/, ''))).toEqual([
+      'Home', 'Dashboard', 'Table', 'Form', 'Profile', 'Settings', 'Notifications', 'Search', 'About',
+    ]);
   });
 
   test('navigation works', async ({ page }) => {
@@ -46,16 +49,14 @@ test.describe('Router App Parity', () => {
     // Navigate to Dashboard which fetches data
     await page.click('.sidebar nav a:has-text("Dashboard")');
 
-    // Should briefly show loading skeleton
-    const skeleton = page.locator('.skeleton');
     // Either the skeleton was shown briefly or the page loaded fast enough to skip it
     await expect(page.locator('.main-content')).toBeVisible();
   });
 
   test('404 page works', async ({ page }) => {
-    await page.goto('/nonexistent-page');
+    await gotoApp(page, 'router', '/nonexistent-page');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=404, text=Not Found')).toBeVisible();
+    await expect(page.getByText(/404|not found/i).first()).toBeVisible();
   });
 });

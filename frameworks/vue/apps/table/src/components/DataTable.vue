@@ -91,6 +91,12 @@ function formatCellValue(row: TableRow, column: keyof TableRow): string {
         <tr
           v-for="row in rows"
           :key="row.id"
+          v-memo="[
+            row,
+            selectedIds.has(row.id),
+            editingCell?.rowId === row.id ? editingCell.column : null,
+            editingCell?.rowId === row.id ? editValue : null,
+          ]"
           :class="{ selected: selectedIds.has(row.id) }"
           @click="emit('row-click', row.id, $event)"
         >

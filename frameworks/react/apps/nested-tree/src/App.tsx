@@ -1,4 +1,6 @@
 import { useState, createContext, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+import type { NestedTreeBenchmarkHooks } from 'shared-data';
 import Level from './components/Level';
 
 export const ThemeContext = createContext<'light' | 'dark'>('dark');
@@ -21,14 +23,14 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Benchmark hooks
+  // Benchmark hooks — each commits synchronously (see BenchmarkHooks contract)
   useEffect(() => {
-    const hooks = {
-      incrementCounter: () => setCounter((c) => c + 1),
-      toggleTheme: () => setTheme((t) => (t === 'light' ? 'dark' : 'light')),
-      toggleWideMode: () => setWideMode((w) => !w),
-      mountComponents: (n: number) => setLifecycleCount(n),
-      unmountComponents: () => setLifecycleCount(0),
+    const hooks: NestedTreeBenchmarkHooks = {
+      incrementCounter: () => flushSync(() => setCounter((c) => c + 1)),
+      toggleTheme: () => flushSync(() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))),
+      toggleWideMode: () => flushSync(() => setWideMode((w) => !w)),
+      mountComponents: (n: number) => flushSync(() => setLifecycleCount(n)),
+      unmountComponents: () => flushSync(() => setLifecycleCount(0)),
     };
     (window as unknown as Record<string, unknown>).__benchmark = hooks;
     return () => {

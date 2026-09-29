@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.angular/cache
+**/.angular/
 .vite/
 *.tsbuildinfo
 
@@ -28,6 +28,10 @@ Thumbs.db
 
 # Docker
 docker/.env
+
+# Playwright
+**/test-results/
+**/playwright-report/
 
 # Coverage
 coverage/

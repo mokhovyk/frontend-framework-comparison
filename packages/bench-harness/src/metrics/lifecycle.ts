@@ -1,86 +1,74 @@
-import type { BrowserContext } from '../browser.js';
-import type { BenchmarkConfig } from '../config.js';
-import { computeStats } from '../stats.js';
-import { statToResult, type BenchmarkResult } from '../reporter.js';
+import { callHook, timeHook, type BrowserContext } from '../browser.js';
+import type { SampleSet } from '../samples.js';
+
+const LIFECYCLE_ITEMS = '#lifecycle-container [data-level]';
+
+async function lifecycleNodeCount(ctx: BrowserContext): Promise<number> {
+  return ctx.page.$$eval(LIFECYCLE_ITEMS, (els) => els.length);
+}
 
 /**
- * Measure component lifecycle throughput: mount, unmount, cycles.
+ * C1–C3: component lifecycle throughput on the nested-tree app's
+ * #lifecycle-container (1,000 independent 3-level subtrees).
+ *
+ * Every hook commits before returning, so mount → unmount sequences can't be
+ * batched into a no-op by frameworks with async schedulers.
  */
 export async function measureLifecycle(
   ctx: BrowserContext,
-  config: BenchmarkConfig,
-): Promise<Record<string, BenchmarkResult>> {
-  const results: Record<string, BenchmarkResult> = {};
-  const runs = config.reduced ? 10 : 20;
+  opts: { runs: number; warmup: number },
+): Promise<SampleSet> {
+  const results: SampleSet = {};
 
-  // C1: Mount 1,000 components
-  console.log('    C1: Mount 1,000 components...');
+  // C1: Mount 1,000 components (starting from an empty, committed container)
+  console.log('      C1: Mount 1,000 components...');
   const c1Runs: number[] = [];
-  for (let i = 0; i < config.warmup + runs; i++) {
+  for (let i = 0; i < opts.warmup + opts.runs; i++) {
+    await callHook(ctx.page, 'unmountComponents');
     await ctx.forceGC();
-    const time = await ctx.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        const bm = (window as unknown as { __benchmark: { mountComponents: (n: number) => void; unmountComponents: () => void } }).__benchmark;
-        bm.unmountComponents();
-
-        const start = performance.now();
-        bm.mountComponents(1000);
-        requestAnimationFrame(() => {
-          setTimeout(() => resolve(performance.now() - start), 0);
-        });
-      });
-    });
-    if (i >= config.warmup) c1Runs.push(time);
+    const time = await timeHook(ctx.page, 'mountComponents', [1000]);
+    if (i === 0 && (await lifecycleNodeCount(ctx)) === 0) {
+      throw new Error('C1: mountComponents(1000) did not render anything into #lifecycle-container');
+    }
+    if (i >= opts.warmup) c1Runs.push(time);
   }
-  results['C1_mount_1k'] = statToResult(computeStats(c1Runs), 'ms');
+  results['C1_mount_1k'] = { unit: 'ms', runs: c1Runs };
 
-  // C2: Unmount 1,000 components
-  console.log('    C2: Unmount 1,000 components...');
+  // C2: Unmount 1,000 components (starting from 1,000 committed components)
+  console.log('      C2: Unmount 1,000 components...');
   const c2Runs: number[] = [];
-  for (let i = 0; i < config.warmup + runs; i++) {
+  for (let i = 0; i < opts.warmup + opts.runs; i++) {
+    await callHook(ctx.page, 'mountComponents', [1000]);
     await ctx.forceGC();
-    await ctx.page.evaluate(() => {
-      const bm = (window as unknown as { __benchmark: { mountComponents: (n: number) => void } }).__benchmark;
-      bm.mountComponents(1000);
-    });
-    await new Promise((r) => setTimeout(r, 200));
-    await ctx.forceGC();
-
-    const time = await ctx.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        const bm = (window as unknown as { __benchmark: { unmountComponents: () => void } }).__benchmark;
-        const start = performance.now();
-        bm.unmountComponents();
-        requestAnimationFrame(() => {
-          setTimeout(() => resolve(performance.now() - start), 0);
-        });
-      });
-    });
-    if (i >= config.warmup) c2Runs.push(time);
+    const time = await timeHook(ctx.page, 'unmountComponents');
+    if (i === 0 && (await lifecycleNodeCount(ctx)) !== 0) {
+      throw new Error('C2: unmountComponents() left nodes in #lifecycle-container');
+    }
+    if (i >= opts.warmup) c2Runs.push(time);
   }
-  results['C2_unmount_1k'] = statToResult(computeStats(c2Runs), 'ms');
+  results['C2_unmount_1k'] = { unit: 'ms', runs: c2Runs };
 
-  // C3: Mount/unmount cycle (1,000 × 10)
-  console.log('    C3: Mount/unmount 10 cycles...');
+  // C3: 10 × (mount 1,000 → unmount), each step committed; one paint at the end.
+  console.log('      C3: Mount/unmount 10 cycles...');
   const c3Runs: number[] = [];
-  for (let i = 0; i < config.warmup + runs; i++) {
+  for (let i = 0; i < opts.warmup + opts.runs; i++) {
+    await callHook(ctx.page, 'unmountComponents');
     await ctx.forceGC();
-    const time = await ctx.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        const bm = (window as unknown as { __benchmark: { mountComponents: (n: number) => void; unmountComponents: () => void } }).__benchmark;
-        const start = performance.now();
-        for (let c = 0; c < 10; c++) {
-          bm.mountComponents(1000);
-          bm.unmountComponents();
-        }
-        requestAnimationFrame(() => {
-          setTimeout(() => resolve(performance.now() - start), 0);
-        });
-      });
+    const time = await ctx.page.evaluate(async () => {
+      const bm = (window as unknown as {
+        __benchmark: { mountComponents: (n: number) => unknown; unmountComponents: () => unknown };
+      }).__benchmark;
+      const start = performance.now();
+      for (let c = 0; c < 10; c++) {
+        await bm.mountComponents(1000);
+        await bm.unmountComponents();
+      }
+      await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      return performance.now() - start;
     });
-    if (i >= config.warmup) c3Runs.push(time);
+    if (i >= opts.warmup) c3Runs.push(time);
   }
-  results['C3_mount_unmount_10x'] = statToResult(computeStats(c3Runs), 'ms');
+  results['C3_mount_unmount_10x'] = { unit: 'ms', runs: c3Runs };
 
   return results;
 }

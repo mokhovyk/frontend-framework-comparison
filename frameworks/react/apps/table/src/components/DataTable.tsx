@@ -1,3 +1,4 @@
+import { memo, useCallback, useLayoutEffect, useRef } from 'react';
 import type { TableRow } from 'shared-data';
 
 type SortDirection = 'asc' | 'desc' | 'none';
@@ -50,6 +51,91 @@ function formatCellValue(row: TableRow, column: keyof TableRow): string {
   return String(value);
 }
 
+/** Stable-identity wrapper around a callback so memoized rows don't re-render when it changes. */
+function useStableCallback<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  const ref = useRef(fn);
+  useLayoutEffect(() => {
+    ref.current = fn;
+  });
+  return useCallback((...args: A) => ref.current(...args), []);
+}
+
+interface DataRowProps {
+  row: TableRow;
+  isSelected: boolean;
+  editingColumn: keyof TableRow | null;
+  editValue: string;
+  onRowClick: (rowId: number, shiftKey: boolean) => void;
+  onCellDoubleClick: (rowId: number, column: keyof TableRow, value: string) => void;
+  onEditChange: (value: string) => void;
+  onEditCommit: () => void;
+  onEditCancel: () => void;
+}
+
+const DataRow = memo(function DataRow({
+  row,
+  isSelected,
+  editingColumn,
+  editValue,
+  onRowClick,
+  onCellDoubleClick,
+  onEditChange,
+  onEditCommit,
+  onEditCancel,
+}: DataRowProps) {
+  return (
+    <tr className={isSelected ? 'selected' : ''} onClick={(e) => onRowClick(row.id, e.shiftKey)}>
+      {COLUMNS.map((col) => {
+        if (editingColumn === col.key) {
+          return (
+            <td key={col.key} className="editing">
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => onEditChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onEditCommit();
+                  if (e.key === 'Escape') onEditCancel();
+                }}
+                onBlur={onEditCommit}
+                autoFocus
+              />
+            </td>
+          );
+        }
+
+        if (col.key === 'isActive') {
+          return (
+            <td
+              key={col.key}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                onCellDoubleClick(row.id, col.key, String(row.isActive));
+              }}
+            >
+              <span className={`active-badge ${row.isActive ? 'active' : 'inactive'}`}>
+                {row.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+          );
+        }
+
+        return (
+          <td
+            key={col.key}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onCellDoubleClick(row.id, col.key, String(row[col.key]));
+            }}
+          >
+            {formatCellValue(row, col.key)}
+          </td>
+        );
+      })}
+    </tr>
+  );
+});
+
 export default function DataTable({
   rows,
   sort,
@@ -62,6 +148,12 @@ export default function DataTable({
   onEditCommit,
   onEditCancel,
 }: DataTableProps) {
+  const stableRowClick = useStableCallback(onRowClick);
+  const stableCellDoubleClick = useStableCallback(onCellDoubleClick);
+  const stableEditChange = useStableCallback(onEditChange);
+  const stableEditCommit = useStableCallback(onEditCommit);
+  const stableEditCancel = useStableCallback(onEditCancel);
+
   return (
     <table className="data-table">
       <thead>
@@ -79,64 +171,23 @@ export default function DataTable({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr
-            key={row.id}
-            className={selectedIds.has(row.id) ? 'selected' : ''}
-            onClick={(e) => onRowClick(row.id, e.shiftKey)}
-          >
-            {COLUMNS.map((col) => {
-              const isEditing =
-                editingCell?.rowId === row.id && editingCell?.column === col.key;
-
-              if (isEditing) {
-                return (
-                  <td key={col.key} className="editing">
-                    <input
-                      type="text"
-                      value={editingCell!.value}
-                      onChange={(e) => onEditChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') onEditCommit();
-                        if (e.key === 'Escape') onEditCancel();
-                      }}
-                      onBlur={onEditCommit}
-                      autoFocus
-                    />
-                  </td>
-                );
-              }
-
-              if (col.key === 'isActive') {
-                return (
-                  <td
-                    key={col.key}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      onCellDoubleClick(row.id, col.key, String(row.isActive));
-                    }}
-                  >
-                    <span className={`active-badge ${row.isActive ? 'active' : 'inactive'}`}>
-                      {row.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                );
-              }
-
-              return (
-                <td
-                  key={col.key}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    onCellDoubleClick(row.id, col.key, String(row[col.key]));
-                  }}
-                >
-                  {formatCellValue(row, col.key)}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
+        {rows.map((row) => {
+          const isEditingRow = editingCell?.rowId === row.id;
+          return (
+            <DataRow
+              key={row.id}
+              row={row}
+              isSelected={selectedIds.has(row.id)}
+              editingColumn={isEditingRow ? editingCell.column : null}
+              editValue={isEditingRow ? editingCell.value : ''}
+              onRowClick={stableRowClick}
+              onCellDoubleClick={stableCellDoubleClick}
+              onEditChange={stableEditChange}
+              onEditCommit={stableEditCommit}
+              onEditCancel={stableEditCancel}
+            />
+          );
+        })}
       </tbody>
     </table>
   );

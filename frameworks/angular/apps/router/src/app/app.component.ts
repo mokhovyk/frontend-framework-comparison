@@ -33,11 +33,10 @@ export class AppComponent implements OnInit {
   }
 
   private exposeBenchmarkHooks(): void {
-    const self = this;
     window.__benchmark = {
-      async navigateTo(path: string) {
+      navigateTo: async (path: string) => {
         const start = performance.now();
-        await self.router.navigateByUrl(path);
+        await this.router.navigateByUrl(path);
         // Wait for rendering
         return new Promise<number>((resolve) => {
           requestAnimationFrame(() => {
@@ -47,9 +46,7 @@ export class AppComponent implements OnInit {
           });
         });
       },
-      getLoadTime() {
-        return self.loadTime;
-      },
+      getLoadTime: () => this.loadTime,
     };
   }
 }

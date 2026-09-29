@@ -1,10 +1,13 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
+import { appPort, defaultConfig } from 'bench-harness/config';
 
 /**
- * Navigate to an app and wait for it to be ready.
+ * Navigate to `app` for the framework of the current Playwright project
+ * (served by global-setup) and wait for the network to settle.
  */
-export async function navigateToApp(page: Page, app: string, port: number): Promise<void> {
-  await page.goto(`http://localhost:${port}`);
+export async function gotoApp(page: Page, app: string, path = '/'): Promise<void> {
+  const framework = test.info().project.name;
+  await page.goto(`http://localhost:${appPort(framework, app, defaultConfig)}${path}`);
   await page.waitForLoadState('networkidle');
 }
 

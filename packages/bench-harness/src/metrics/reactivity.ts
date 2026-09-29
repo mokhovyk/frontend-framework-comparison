@@ -1,72 +1,31 @@
-import type { BrowserContext } from '../browser.js';
-import type { BenchmarkConfig } from '../config.js';
-import { computeStats } from '../stats.js';
-import { statToResult, type BenchmarkResult } from '../reporter.js';
+import { timeHook, type BrowserContext } from '../browser.js';
+import type { SampleSet } from '../samples.js';
 
 /**
- * Measure reactivity: state update → DOM paint timing.
- * Uses MutationObserver + requestAnimationFrame for paint detection.
+ * S1/S3: state update → DOM committed → paint, on the 50-level nested tree.
+ * S1 changes a counter read by the leaf; S3 toggles a theme that every level
+ * consumes (context / provide-inject / service propagation).
  */
 export async function measureReactivity(
   ctx: BrowserContext,
-  config: BenchmarkConfig,
-): Promise<Record<string, BenchmarkResult>> {
-  const results: Record<string, BenchmarkResult> = {};
-  const runs = config.reduced ? 25 : 50;
+  opts: { runs: number; warmup: number },
+): Promise<SampleSet> {
+  const benchmarks = [
+    { id: 'S1_single_update', label: 'Single state update', op: 'incrementCounter' },
+    { id: 'S3_deep_propagation', label: 'Deep propagation (50 levels)', op: 'toggleTheme' },
+  ];
+  const results: SampleSet = {};
 
-  // S1: Single state update
-  console.log('    S1: Single state update...');
-  const s1Runs: number[] = [];
-  for (let i = 0; i < runs; i++) {
-    await ctx.forceGC();
-    const time = await ctx.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        const bm = (window as unknown as { __benchmark: { incrementCounter: () => void } }).__benchmark;
-        const target = document.querySelector('[data-bench-leaf]');
-        if (!target) { resolve(-1); return; }
-
-        const observer = new MutationObserver(() => {
-          observer.disconnect();
-          requestAnimationFrame(() => {
-            setTimeout(() => resolve(performance.now() - start), 0);
-          });
-        });
-        observer.observe(target, { childList: true, characterData: true, subtree: true });
-
-        const start = performance.now();
-        bm.incrementCounter();
-      });
-    });
-    if (time >= 0) s1Runs.push(time);
+  for (const bench of benchmarks) {
+    console.log(`      ${bench.id}: ${bench.label}...`);
+    const runs: number[] = [];
+    for (let i = 0; i < opts.warmup + opts.runs; i++) {
+      await ctx.forceGC();
+      const time = await timeHook(ctx.page, bench.op);
+      if (i >= opts.warmup) runs.push(time);
+    }
+    results[bench.id] = { unit: 'ms', runs };
   }
-  if (s1Runs.length > 0) results['S1_single_update'] = statToResult(computeStats(s1Runs), 'ms');
-
-  // S3: Deeply nested propagation (50 levels)
-  console.log('    S3: Deep propagation (50 levels)...');
-  const s3Runs: number[] = [];
-  for (let i = 0; i < runs; i++) {
-    await ctx.forceGC();
-    const time = await ctx.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        const bm = (window as unknown as { __benchmark: { toggleTheme: () => void } }).__benchmark;
-        const leaf = document.querySelector('[data-bench-leaf]');
-        if (!leaf) { resolve(-1); return; }
-
-        const observer = new MutationObserver(() => {
-          observer.disconnect();
-          requestAnimationFrame(() => {
-            setTimeout(() => resolve(performance.now() - start), 0);
-          });
-        });
-        observer.observe(leaf, { attributes: true, childList: true, subtree: true });
-
-        const start = performance.now();
-        bm.toggleTheme();
-      });
-    });
-    if (time >= 0) s3Runs.push(time);
-  }
-  if (s3Runs.length > 0) results['S3_deep_propagation'] = statToResult(computeStats(s3Runs), 'ms');
 
   return results;
 }

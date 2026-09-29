@@ -1,5 +1,5 @@
 import { Component, signal, OnInit } from '@angular/core';
-import { ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators, AbstractControl, ValidatorFn } from '@angular/forms';
+import { ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators, ValidatorFn } from '@angular/forms';
 import { FormFieldComponent } from './components/form-field/form-field.component';
 import { RepeatableGroupComponent } from './components/repeatable-group/repeatable-group.component';
 import { ErrorSummaryComponent } from './components/error-summary/error-summary.component';
@@ -247,11 +247,8 @@ export class AppComponent implements OnInit {
   }
 
   private exposeBenchmarkHooks(): void {
-    const self = this;
     window.__benchmark = {
-      async stressTest() {
-        return self.stressTest();
-      },
+      stressTest: () => this.stressTest(),
     };
   }
 }

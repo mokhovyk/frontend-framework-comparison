@@ -1,5 +1,9 @@
 name: Benchmark (PR)
 
+# Measures the PR's base and head on the same runner, one after the other, and
+# compares them with a Mann-Whitney U test. Comparing against a baseline from a
+# different machine/run is dominated by runner-to-runner noise.
+
 on:
   pull_request:
     branches: [main]
@@ -12,134 +16,113 @@ concurrency:
   group: benchmark-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+env:
+  BENCH_ENV: >-
+    -e BENCHMARK_REDUCED=true
+    -e BENCHMARK_ROUNDS=1
+    -e BENCHMARK_FAIL_ON_VARIANCE=false
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - name: Checkout head
+        uses: actions/checkout@v4
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
+          path: head
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build shared packages
-        run: |
-          pnpm --filter shared-data build
-          pnpm --filter bench-harness build
-
-      - name: Build all framework apps
-        run: pnpm build:all
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build base image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: docker/Dockerfile
-          tags: bench:pr-${{ github.event.pull_request.number }}
+          context: base
+          file: base/docker/Dockerfile
+          tags: bench:base
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Run reduced benchmark suite
-        run: |
-          docker run --cpus=2 --memory=4g \
-            -e BENCHMARK_REDUCED=true \
-            -e BENCHMARK_RUNS=10 \
-            -e BENCHMARK_WARMUP=3 \
-            -e BENCHMARK_FAIL_ON_VARIANCE=false \
-            -v ${{ github.workspace }}/results:/app/results \
-            bench:pr-${{ github.event.pull_request.number }}
-
-      - name: Download baseline results
-        uses: actions/download-artifact@v4
+      - name: Build head image
+        uses: docker/build-push-action@v6
         with:
-          name: benchmark-baseline
-          path: results/baseline
+          context: head
+          file: head/docker/Dockerfile
+          tags: bench:head
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run base (reduced)
         continue-on-error: true
+        run: |
+          docker run --cpus=2 --memory=4g $BENCH_ENV \
+            -e GIT_COMMIT=${{ github.event.pull_request.base.sha }} \
+            -v ${{ github.workspace }}/results-base:/app/results \
+            bench:base
+
+      - name: Run head (reduced)
+        run: |
+          docker run --cpus=2 --memory=4g $BENCH_ENV \
+            -e GIT_COMMIT=${{ github.event.pull_request.head.sha }} \
+            -v ${{ github.workspace }}/results-head:/app/results \
+            bench:head
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: head/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: head/.nvmrc
+          cache: pnpm
+          cache-dependency-path: head/pnpm-lock.yaml
+
+      - name: Build comparison tool
+        working-directory: head
+        run: |
+          pnpm install --frozen-lockfile --filter bench-harness
+          pnpm --filter bench-harness build
+
+      - name: Detect harness changes
+        id: harness
+        run: |
+          if diff -rq base/packages/bench-harness/src head/packages/bench-harness/src > /dev/null 2>&1; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Generate comparison comment
-        id: comparison
         run: |
-          node -e "
-            const fs = require('fs');
-            const latest = JSON.parse(fs.readFileSync('results/latest.json', 'utf8'));
-            let baseline;
-            try { baseline = JSON.parse(fs.readFileSync('results/baseline/latest.json', 'utf8')); } catch { baseline = null; }
-
-            let body = '## Benchmark Results\n\n';
-
-            const frameworks = Object.keys(latest.results);
-            const allMetrics = new Set();
-            for (const fw of frameworks) {
-              for (const m of Object.keys(latest.results[fw])) allMetrics.add(m);
-            }
-
-            body += '| Metric | ' + frameworks.join(' | ') + ' |\n';
-            body += '|--------|' + frameworks.map(() => '--------').join('|') + '|\n';
-
-            for (const metric of allMetrics) {
-              const values = frameworks.map(fw => {
-                const r = latest.results[fw][metric];
-                if (!r) return '—';
-                const v = r.median ?? r.value ?? 0;
-                let str = r.unit === 'bytes' ? (v/1024).toFixed(1) + ' KB' : v.toFixed(1) + ' ' + r.unit;
-                if (baseline?.results?.[fw]?.[metric]) {
-                  const bv = baseline.results[fw][metric].median ?? baseline.results[fw][metric].value ?? 0;
-                  if (bv > 0) {
-                    const diff = ((v - bv) / bv * 100).toFixed(1);
-                    const emoji = Math.abs(diff) < 2 ? '➖' : (diff > 0 ? '🔴' : '🟢');
-                    str += ' (' + emoji + ' ' + (diff > 0 ? '+' : '') + diff + '%)';
-                  }
-                }
-                return str;
-              });
-              body += '| ' + metric.replace(/_/g, ' ') + ' | ' + values.join(' | ') + ' |\n';
-            }
-
-            body += '\n<sub>🤖 Benchmark run on ' + latest.meta.timestamp + ' | Commit: ' + latest.meta.commit.substring(0,7) + '</sub>';
-
-            fs.writeFileSync('pr-comment.md', body);
-          "
+          sudo chown -R "$(id -u):$(id -g)" results-base results-head 2>/dev/null || true
+          if [ ! -f results-base/latest.json ]; then
+            mkdir -p results-base
+            echo '{"meta":{"commit":"none","chromeVersion":"","timestamp":""},"results":{}}' > results-base/latest.json
+          fi
+          node head/packages/bench-harness/dist/compare-cli.js \
+            results-base/latest.json results-head/latest.json \
+            --markdown pr-comment.md --no-fail \
+            ${{ steps.harness.outputs.changed == 'true' && '--advisory' || '' }}
 
       - name: Comment on PR
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           path: pr-comment.md
 
+      # A PR that changes the harness measures base and head with different
+      # code, so its "regressions" aren't comparable — the gate is skipped.
       - name: Check for regressions
+        if: steps.harness.outputs.changed == 'false'
         run: |
-          if [ -f results/baseline/latest.json ]; then
-            node -e "
-              const fs = require('fs');
-              const latest = JSON.parse(fs.readFileSync('results/latest.json', 'utf8'));
-              const baseline = JSON.parse(fs.readFileSync('results/baseline/latest.json', 'utf8'));
-              let regressions = [];
-              for (const [fw, metrics] of Object.entries(latest.results)) {
-                for (const [metric, result] of Object.entries(metrics)) {
-                  const bm = baseline.results?.[fw]?.[metric];
-                  if (!bm) continue;
-                  const v = result.median ?? result.value ?? 0;
-                  const bv = bm.median ?? bm.value ?? 0;
-                  if (bv > 0 && (v - bv) / bv > 0.10) {
-                    regressions.push(fw + '/' + metric + ': ' + ((v-bv)/bv*100).toFixed(1) + '% regression');
-                  }
-                }
-              }
-              if (regressions.length > 0) {
-                console.error('Regressions detected (>10%):\n' + regressions.join('\n'));
-                process.exit(1);
-              }
-              console.log('No significant regressions detected.');
-            "
-          fi
+          node head/packages/bench-harness/dist/compare-cli.js \
+            results-base/latest.json results-head/latest.json

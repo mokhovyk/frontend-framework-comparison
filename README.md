@@ -8,23 +8,35 @@ A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 
 # Prerequisites: Node.js 22+, pnpm 9+
 pnpm install
 pnpm build:all
+pnpm --filter bench-harness exec playwright install chromium
 pnpm benchmark
 ```
 
 ### Docker (recommended for reproducible results)
 
 ```bash
-docker compose -f docker/docker-compose.yml up benchmark
+GIT_COMMIT=$(git rev-parse HEAD) docker compose -f docker/docker-compose.yml up benchmark
+```
+
+### Checks
+
+```bash
+pnpm lint           # ESLint
+pnpm typecheck      # React + Vue type-check (Angular type-checks during build)
+pnpm test:unit      # harness statistics / metric definitions
+pnpm test:parity    # Playwright parity + benchmark-hook contract tests (needs pnpm build:all)
 ```
 
 ## What's Measured
 
-- **Build & Bundle**: raw/gzip/brotli sizes, dev/prod/incremental build times
-- **Loading**: FCP, LCP, TTI, TBT via Lighthouse CI
-- **Runtime Rendering**: create, update, swap, remove, clear, append rows
-- **Memory**: idle heap, loaded heap, leak detection, peak under load
-- **Reactivity**: single update, batch, deep propagation, computed chains
-- **Component Lifecycle**: mount/unmount throughput
+- **Bundle & build** (B1–B3, B5): raw/gzip/brotli bundle size, and production build time
+- **Loading** (L1–L5): FCP, LCP, TTI, TBT and boot blocking time, from a cold load with 4× CPU throttling
+- **Runtime rendering** (R1–R9): create, update, replace, select, swap, remove, clear and append on a fully rendered (unpaginated) table of up to 11k rows
+- **Memory** (M1–M4): idle heap, heap with 10k rows, and heap after one and after five create/clear cycles (leak detection)
+- **Reactivity** (S1, S3): single update and propagation through 50 nested levels
+- **Component lifecycle** (C1–C3): mounting, unmounting and mount/unmount cycles of 1,000 subtrees
+
+Browser suites run in rotated framework order across rounds. Results carry medians, bootstrap CIs, and pairwise Mann-Whitney U comparisons. See [METHODOLOGY.md](./docs/METHODOLOGY.md).
 
 ## Test Applications
 

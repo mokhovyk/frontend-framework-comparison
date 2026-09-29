@@ -39,6 +39,7 @@ const showError = () => props.touched && !!props.error;
     <input
       v-if="field.type === 'text'"
       :id="'input-' + field.name"
+      :name="field.name"
       type="text"
       :value="value as string"
       :placeholder="field.placeholder"
@@ -51,6 +52,7 @@ const showError = () => props.touched && !!props.error;
     <select
       v-else-if="field.type === 'select'"
       :id="'input-' + field.name"
+      :name="field.name"
       :value="value as string"
       :class="{ invalid: showError() }"
       @change="onInputChange"
@@ -71,6 +73,7 @@ const showError = () => props.touched && !!props.error;
       <label>
         <input
           :id="'input-' + field.name"
+          :name="field.name"
           type="checkbox"
           :checked="value as boolean"
           @change="onInputChange"
@@ -99,6 +102,7 @@ const showError = () => props.touched && !!props.error;
     <input
       v-else-if="field.type === 'date'"
       :id="'input-' + field.name"
+      :name="field.name"
       type="date"
       :value="value as string"
       :class="{ invalid: showError() }"
@@ -110,6 +114,7 @@ const showError = () => props.touched && !!props.error;
     <textarea
       v-else-if="field.type === 'textarea'"
       :id="'input-' + field.name"
+      :name="field.name"
       :value="value as string"
       :placeholder="field.placeholder"
       :class="{ invalid: showError() }"
@@ -121,6 +126,7 @@ const showError = () => props.touched && !!props.error;
     <input
       v-else-if="field.type === 'file'"
       :id="'input-' + field.name"
+      :name="field.name"
       type="file"
       :class="{ invalid: showError() }"
       @change="onInputChange"

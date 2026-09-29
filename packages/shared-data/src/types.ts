@@ -95,25 +95,50 @@ export interface FormSchema {
 
 // === Benchmark Hooks Types ===
 
+/**
+ * Contract for every `window.__benchmark` hook exposed by a benchmarked app:
+ * when the hook returns (or, if it returns a promise, when that promise
+ * resolves) the framework must have committed the resulting DOM changes.
+ *
+ * This mirrors how frameworks treat a discrete user event (click, keypress):
+ * React → `flushSync`, Vue → `await nextTick()`, Angular → `ApplicationRef.tick()`.
+ * It lets the harness time "state change → DOM committed → paint" identically
+ * for every framework instead of racing each framework's own scheduler.
+ */
+export type BenchmarkHookResult = void | Promise<void>;
+
 export interface BenchmarkHooks {
-  /** Create N rows */
-  createRows: (count: number) => void;
-  /** Update every nth row */
-  updateEveryNthRow: (n: number) => void;
-  /** Replace all rows with new data */
-  replaceAllRows: () => void;
-  /** Select a row by index */
-  selectRow: (index: number) => void;
-  /** Swap two rows */
-  swapRows: (a: number, b: number) => void;
-  /** Remove a row by index */
-  removeRow: (index: number) => void;
-  /** Clear all rows */
-  clearRows: () => void;
-  /** Append N rows */
-  appendRows: (count: number) => void;
+  /** Replace all rows with N freshly generated rows (resets selection and page) */
+  createRows: (count: number) => BenchmarkHookResult;
+  /** Append " !" to the lastName of every nth row (index 0, n, 2n, ...) */
+  updateEveryNthRow: (n: number) => BenchmarkHookResult;
+  /** Replace all rows with 10,000 rows from a different seed (resets selection and page) */
+  replaceAllRows: () => BenchmarkHookResult;
+  /** Make the row at `index` the only selected row */
+  selectRow: (index: number) => BenchmarkHookResult;
+  /** Swap the rows at indices a and b */
+  swapRows: (a: number, b: number) => BenchmarkHookResult;
+  /** Remove the row at `index` */
+  removeRow: (index: number) => BenchmarkHookResult;
+  /** Remove all rows (resets selection and page) */
+  clearRows: () => BenchmarkHookResult;
+  /** Append N rows generated with APPEND_ROWS_SEED, ids continuing after the current max id */
+  appendRows: (count: number) => BenchmarkHookResult;
   /** Get current row count */
   getRowCount: () => number;
+}
+
+export interface NestedTreeBenchmarkHooks {
+  /** Increment the counter consumed by the leaf level */
+  incrementCounter: () => BenchmarkHookResult;
+  /** Toggle the theme propagated through all levels */
+  toggleTheme: () => BenchmarkHookResult;
+  /** Toggle between the 50-deep chain and the 3×10 wide tree */
+  toggleWideMode: () => BenchmarkHookResult;
+  /** Mount N independent 3-level subtrees into #lifecycle-container */
+  mountComponents: (n: number) => BenchmarkHookResult;
+  /** Unmount everything in #lifecycle-container */
+  unmountComponents: () => BenchmarkHookResult;
 }
 
 export interface DashboardBenchmarkHooks {
