@@ -351,6 +351,7 @@ function generateHTML(results: BenchmarkResults): string {
   <meta name="color-scheme" content="light dark">
   <title>Frontend Framework Benchmarks</title>
   <meta name="description" content="React vs Angular vs Vue: bundle size, loading, rendering, memory, reactivity and lifecycle benchmarks.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(FAVICON)}">
   <script>
     try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
@@ -402,6 +403,13 @@ function generateHTML(results: BenchmarkResults): string {
 </body>
 </html>`;
 }
+
+// The topbar logo: three descending bars in the framework colors
+const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<rect x="1" y="2" width="8" height="28" rx="3" fill="#0284c7"/>
+<rect x="12" y="10" width="8" height="20" rx="3" fill="#b8173a"/>
+<rect x="23" y="16" width="8" height="14" rx="3" fill="#1f9d62"/>
+</svg>`;
 
 const CSS = `
 :root {
