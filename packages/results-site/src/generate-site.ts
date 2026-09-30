@@ -1,8 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateMarkdownTable } from './generate-readme.js';
+import type { EcosystemData } from './fetch-ecosystem.js';
 
 const RESULTS_PATH = join('..', '..', 'results', 'latest.json');
+const ECOSYSTEM_PATH = join('..', '..', 'results', 'ecosystem.json');
 const OUTPUT_DIR = join('..', '..', 'results', 'site');
 const REPO_URL = 'https://github.com/mokhovyk/frontend-framework-comparison';
 
@@ -272,7 +274,212 @@ function renderTable(metrics: Metric[], frameworks: string[]): string {
       </div>`;
 }
 
-function generateHTML(results: BenchmarkResults): string {
+const ECOSYSTEM_METRICS: { key: string; label: string; detail: string; ranked: boolean }[] = [
+  {
+    key: 'weekly_downloads',
+    label: 'Weekly downloads',
+    detail: 'npm, core package, last full week',
+    ranked: true,
+  },
+  {
+    key: 'npm_packages',
+    label: 'npm packages',
+    detail: 'Packages with the framework as a keyword',
+    ranked: true,
+  },
+  {
+    key: 'github_stars',
+    label: 'GitHub stars',
+    detail: 'Main repository (Vue: vuejs/core, Vue 3 only)',
+    ranked: true,
+  },
+  {
+    key: 'so_questions',
+    label: 'Stack Overflow questions',
+    detail: 'reactjs, angular and vue.js tags',
+    ranked: true,
+  },
+  {
+    key: 'stable_releases',
+    label: 'Stable releases',
+    detail: 'Core package, last 12 months, no prereleases',
+    ranked: false,
+  },
+];
+
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+const exact = new Intl.NumberFormat('en-US');
+
+function formatPercent(v: number): string {
+  return `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(0)}%`;
+}
+
+function renderEcosystemCard(
+  metric: (typeof ECOSYSTEM_METRICS)[number],
+  values: Record<string, number>,
+  frameworks: string[],
+): string {
+  const entries = frameworks
+    .filter((fw) => values[fw] !== undefined)
+    .map((fw) => ({ fw, value: values[fw] }));
+  const max = Math.max(...entries.map((e) => e.value));
+  const rows = entries
+    .map(({ fw, value }) => {
+      const isTop = metric.ranked && value === max && entries.length > 1;
+      const delta = metric.ranked && !isTop && max > 0 ? formatPercent(value / max - 1) : '';
+      return `<div class="row${isTop ? ' is-best' : ''}" tabindex="0" data-tip="${esc(`${frameworkName(fw)} · ${exact.format(value)}\n${metric.label.toLowerCase()}`)}">
+          <span class="fw"><span class="swatch fw-${esc(fw)}"></span>${esc(frameworkName(fw))}</span>
+          <span class="track">${value > 0 ? `<span class="bar fw-${esc(fw)}" style="width:${((value / max) * 100).toFixed(2)}%"></span>` : ''}</span>
+          <span class="val">${compact.format(value)}</span>
+          <span class="delta">${isTop ? '<span class="badge">Most</span>' : esc(delta)}</span>
+        </div>`;
+    })
+    .join('\n        ');
+  return `<article class="card">
+        <header class="card-head">
+          <div>
+            <h3>${esc(metric.label)}</h3>
+            <p class="detail">${esc(metric.detail)}</p>
+          </div>
+        </header>
+        <div class="rows">
+        ${rows}
+        </div>
+      </article>`;
+}
+
+// Weekly downloads indexed to each framework's first 4 weeks (= 100), so the
+// trend is comparable although React's absolute numbers dwarf the others.
+function renderTrendCard(eco: EcosystemData, frameworks: string[]): string {
+  const series = frameworks
+    .filter((fw) => (eco.weeklyDownloads[fw]?.length ?? 0) >= 8)
+    .map((fw) => {
+      const weekly = eco.weeklyDownloads[fw].slice(-eco.weeks.length);
+      const base = weekly.slice(0, 4).reduce((a, b) => a + b, 0) / 4;
+      return { fw, weekly, indexed: weekly.map((w) => (w / base) * 100) };
+    });
+  if (series.length === 0) return '';
+
+  const n = Math.max(...series.map((s) => s.indexed.length));
+  const all = series.flatMap((s) => s.indexed);
+  const step = 10;
+  const lo = Math.floor(Math.min(...all) / step) * step;
+  const hi = Math.ceil(Math.max(...all) / step) * step;
+  const W = 960,
+    H = 300,
+    L = 40,
+    R = 80,
+    T = 12,
+    B = 26;
+  const x = (i: number) => L + (i / (n - 1)) * (W - L - R);
+  const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
+
+  const tickStep = Math.max(step, Math.ceil((hi - lo) / 4 / step) * step);
+  const grid: string[] = [];
+  for (let v = lo; v <= hi; v += tickStep) {
+    grid.push(
+      `<line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="${v === 100 ? 'base' : 'grid'}"/>` +
+        `<text x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`,
+    );
+  }
+  const months = eco.weeks
+    .map((d, i) => ({ d, i }))
+    .filter(({ d }, i, arr) => i === 0 || d.slice(0, 7) !== arr[i - 1].d.slice(0, 7))
+    .filter((_, i) => i % 3 === 1);
+  const monthLabel = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  const xLabels = months
+    .map(
+      ({ d, i }) =>
+        `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(monthLabel(d))}</text>`,
+    )
+    .join('');
+
+  const lines = series
+    .map((s) => {
+      const offset = n - s.indexed.length;
+      const pts = s.indexed
+        .map((v, i) => `${x(i + offset).toFixed(1)},${y(v).toFixed(1)}`)
+        .join(' ');
+      return `<polyline class="line fw-${esc(s.fw)}" points="${pts}"/>`;
+    })
+    .join('');
+
+  // End labels, nudged apart so lines that finish close together stay legible
+  const ends = series
+    .map((s) => ({ fw: s.fw, y: y(s.indexed[s.indexed.length - 1]) }))
+    .sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 14);
+  const endLabels = ends
+    .map(
+      (e) =>
+        `<text class="end" x="${W - R + 8}" y="${(e.y + 4).toFixed(1)}">${esc(frameworkName(e.fw))}</text>`,
+    )
+    .join('');
+
+  const legend = series
+    .map((s) => {
+      const first = s.weekly.slice(0, 4).reduce((a, b) => a + b, 0);
+      const last = s.weekly.slice(-4).reduce((a, b) => a + b, 0);
+      return `<span class="legend-item"><span class="key fw-${esc(s.fw)}"></span>${esc(frameworkName(s.fw))} <b>${formatPercent(last / first - 1)}</b></span>`;
+    })
+    .join('');
+
+  const chartData = {
+    geom: { L, R, W, n },
+    weeks: eco.weeks,
+    series: series.map((s) => ({
+      name: frameworkName(s.fw),
+      offset: n - s.indexed.length,
+      weekly: s.weekly,
+      indexed: s.indexed.map((v) => Math.round(v)),
+    })),
+  };
+
+  return `<article class="card card-wide">
+        <header class="card-head">
+          <div>
+            <h3>Download trend</h3>
+            <p class="detail">Weekly npm downloads over the last year, indexed to each framework's first 4 weeks = 100</p>
+          </div>
+        </header>
+        <div class="legend">${legend}<span class="muted">last 4 weeks vs first 4</span></div>
+        <div class="trend" tabindex="0" aria-label="Download trend chart" data-chart="${esc(JSON.stringify(chartData))}">
+          <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Indexed weekly npm downloads per framework">
+            <g class="axis">${grid.join('')}${xLabels}</g>
+            ${lines}
+            <g class="axis">${endLabels}</g>
+            <line class="crosshair" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/>
+          </svg>
+        </div>
+      </article>`;
+}
+
+function renderEcosystem(eco: EcosystemData | undefined, frameworks: string[]): string {
+  if (!eco) return '';
+  const cards = ECOSYSTEM_METRICS.filter((m) => eco.metrics[m.key]).map((m) =>
+    renderEcosystemCard(m, eco.metrics[m.key], frameworks),
+  );
+  if (cards.length === 0) return '';
+  const fetched = new Date(eco.fetchedAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+  return `<section class="section" id="ecosystem">
+      <div class="section-head">
+        <h2>Ecosystem</h2>
+        <p>Adoption and community size, fetched ${esc(fetched)}. Bigger is not faster: these don't count towards the scores above.</p>
+      </div>
+      <div class="grid">
+      ${renderTrendCard(eco, frameworks)}
+      ${cards.join('\n      ')}
+      </div>
+    </section>`;
+}
+
+function generateHTML(results: BenchmarkResults, eco?: EcosystemData): string {
   const { meta } = results;
   const frameworks = Object.keys(results.results);
   const metrics = collectMetrics(results);
@@ -338,6 +545,7 @@ function generateHTML(results: BenchmarkResults): string {
 
   const navLinks = [
     ...CATEGORIES.filter((c) => metrics.some((m) => m.code.startsWith(c.prefix))),
+    ...(eco ? [{ id: 'ecosystem', title: 'Ecosystem' }] : []),
     { id: 'table', title: 'Table' },
   ]
     .map((c) => `<a href="#${c.id}">${esc(c.title)}</a>`)
@@ -381,6 +589,7 @@ function generateHTML(results: BenchmarkResults): string {
 
     ${sections}
     ${otherSection}
+    ${renderEcosystem(eco, frameworks)}
 
     <section class="section" id="table">
       <div class="section-head">
@@ -541,6 +750,22 @@ h1 .vs { color: var(--ink-3); font-weight: 400; font-size: .55em; vertical-align
 }
 .tie { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
 
+.card-wide { grid-column: 1 / -1; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.key { width: 14px; height: 2px; border-radius: 1px; background: var(--c); }
+.trend { outline: none; border-radius: 8px; touch-action: pan-y; }
+.trend:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.trend svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* --k (set by the script) undoes the viewBox scaling so text stays at its CSS pixel size */
+.trend .axis text { fill: var(--ink-3); font-size: calc(11px * var(--k, 1)); font-variant-numeric: tabular-nums; }
+.trend .axis text.end { fill: var(--ink-2); font-size: calc(12px * var(--k, 1)); font-weight: 600; }
+.trend .grid { stroke: var(--border); stroke-width: 1; }
+.trend .base { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.trend .line { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .crosshair { stroke: var(--ink-3); stroke-width: 1; }
+
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -574,7 +799,7 @@ td.is-best { color: var(--ink); font-weight: 650; }
   .row { grid-template-columns: 64px 1fr auto 44px; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-@media (forced-colors: active) { .bar, .meter span, .swatch, .logo i { forced-color-adjust: none; } }
+@media (forced-colors: active) { .bar, .meter span, .swatch, .logo i, .key, .trend .line { forced-color-adjust: none; } }
 `;
 
 const SCRIPT = `
@@ -602,6 +827,49 @@ const SCRIPT = `
     el.addEventListener('focus', () => { show(el); const r = el.getBoundingClientRect(); place(r.left + r.width / 2, r.bottom); });
     el.addEventListener('blur', () => { tip.hidden = true; });
   });
+
+  // Download trend: the crosshair snaps to the nearest week and lists every series
+  document.querySelectorAll('[data-chart]').forEach((el) => {
+    const { geom, weeks, series } = JSON.parse(el.dataset.chart);
+    const svg = el.querySelector('svg');
+    const hair = el.querySelector('.crosshair');
+    const fmt = new Intl.NumberFormat('en-US');
+    let idx = geom.n - 1;
+    new ResizeObserver(() => { if (svg.clientWidth) svg.style.setProperty('--k', geom.W / svg.clientWidth); }).observe(svg);
+    const sx = (i) => geom.L + (i / (geom.n - 1)) * (geom.W - geom.L - geom.R);
+    const render = (px, py) => {
+      const vx = sx(idx);
+      hair.setAttribute('x1', vx); hair.setAttribute('x2', vx); hair.setAttribute('visibility', 'visible');
+      const date = new Date(weeks[idx]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+      const lines = ['Week of ' + date];
+      for (const s of series) {
+        const i = idx - s.offset;
+        if (i >= 0) lines.push(fmt.format(s.weekly[i]) + '  ' + s.name + ' (' + s.indexed[i] + ')');
+      }
+      tip.textContent = lines.join('\\n'); tip.hidden = false;
+      if (px === undefined) {
+        const r = svg.getBoundingClientRect();
+        px = r.left + (vx / geom.W) * r.width; py = r.top + r.height / 3;
+      }
+      place(px, py);
+    };
+    const hide = () => { tip.hidden = true; hair.setAttribute('visibility', 'hidden'); };
+    el.addEventListener('pointermove', (e) => {
+      const r = svg.getBoundingClientRect();
+      const vx = ((e.clientX - r.left) / r.width) * geom.W;
+      idx = Math.max(0, Math.min(geom.n - 1, Math.round(((vx - geom.L) / (geom.W - geom.L - geom.R)) * (geom.n - 1))));
+      render(e.clientX, e.clientY);
+    });
+    el.addEventListener('pointerleave', hide);
+    el.addEventListener('focus', () => render());
+    el.addEventListener('blur', hide);
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      idx = Math.max(0, Math.min(geom.n - 1, idx + (e.key === 'ArrowLeft' ? -1 : 1)));
+      render();
+    });
+  });
 })();
 `;
 
@@ -614,7 +882,11 @@ function main() {
   }
 
   const results: BenchmarkResults = JSON.parse(readFileSync(resultsPath, 'utf8'));
-  const html = generateHTML(results);
+  const ecosystemPath = join(process.cwd(), ECOSYSTEM_PATH);
+  const eco: EcosystemData | undefined = existsSync(ecosystemPath)
+    ? JSON.parse(readFileSync(ecosystemPath, 'utf8'))
+    : undefined;
+  const html = generateHTML(results, eco);
 
   const outputDir = join(process.cwd(), OUTPUT_DIR);
   if (!existsSync(outputDir)) {

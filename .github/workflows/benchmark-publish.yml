@@ -73,9 +73,13 @@ jobs:
       - name: Fix results directory permissions
         run: sudo chown -R $(id -u):$(id -g) results
 
+      # Each failing source keeps its previous value, so this never fails the run
       - name: Generate report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm --filter results-site build
+          pnpm --filter results-site ecosystem
           pnpm --filter results-site generate
 
       - name: Log framework versions
@@ -93,7 +97,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add results/latest.json results/archive/ results/site/
+          git add results/latest.json results/ecosystem.json results/archive/ results/site/
           git diff --staged --quiet || git commit -m "${{ inputs.commit-message }}"
           git fetch origin main
           git rebase origin/main
