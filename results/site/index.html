@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <title>Frontend Framework Benchmarks</title>
   <meta name="description" content="React vs Angular vs Vue: bundle size, loading, rendering, memory, reactivity and lifecycle benchmarks.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%0A%3Crect%20x%3D%221%22%20y%3D%222%22%20width%3D%228%22%20height%3D%2228%22%20rx%3D%223%22%20fill%3D%22%230284c7%22%2F%3E%0A%3Crect%20x%3D%2212%22%20y%3D%2210%22%20width%3D%228%22%20height%3D%2220%22%20rx%3D%223%22%20fill%3D%22%23b8173a%22%2F%3E%0A%3Crect%20x%3D%2223%22%20y%3D%2216%22%20width%3D%228%22%20height%3D%2214%22%20rx%3D%223%22%20fill%3D%22%231f9d62%22%2F%3E%0A%3C%2Fsvg%3E">
   <script>
     try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
@@ -139,6 +140,22 @@ h1 .vs { color: var(--ink-3); font-weight: 400; font-size: .55em; vertical-align
 }
 .tie { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
 
+.card-wide { grid-column: 1 / -1; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.key { width: 14px; height: 2px; border-radius: 1px; background: var(--c); }
+.trend { outline: none; border-radius: 8px; touch-action: pan-y; }
+.trend:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.trend svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* --k (set by the script) undoes the viewBox scaling so text stays at its CSS pixel size */
+.trend .axis text { fill: var(--ink-3); font-size: calc(11px * var(--k, 1)); font-variant-numeric: tabular-nums; }
+.trend .axis text.end { fill: var(--ink-2); font-size: calc(12px * var(--k, 1)); font-weight: 600; }
+.trend .grid { stroke: var(--border); stroke-width: 1; }
+.trend .base { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.trend .line { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .crosshair { stroke: var(--ink-3); stroke-width: 1; }
+
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -172,7 +189,7 @@ td.is-best { color: var(--ink); font-weight: 650; }
   .row { grid-template-columns: 64px 1fr auto 44px; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-@media (forced-colors: active) { .bar, .meter span, .swatch, .logo i { forced-color-adjust: none; } }
+@media (forced-colors: active) { .bar, .meter span, .swatch, .logo i, .key, .trend .line { forced-color-adjust: none; } }
 </style>
 </head>
 <body>
@@ -1433,6 +1450,7 @@ CV 3.5%
       </div>
     </section>
     
+    
 
     <section class="section" id="table">
       <div class="section-head">
@@ -1508,6 +1526,49 @@ CV 3.5%
     el.addEventListener('pointerleave', () => { tip.hidden = true; });
     el.addEventListener('focus', () => { show(el); const r = el.getBoundingClientRect(); place(r.left + r.width / 2, r.bottom); });
     el.addEventListener('blur', () => { tip.hidden = true; });
+  });
+
+  // Download trend: the crosshair snaps to the nearest week and lists every series
+  document.querySelectorAll('[data-chart]').forEach((el) => {
+    const { geom, weeks, series } = JSON.parse(el.dataset.chart);
+    const svg = el.querySelector('svg');
+    const hair = el.querySelector('.crosshair');
+    const fmt = new Intl.NumberFormat('en-US');
+    let idx = geom.n - 1;
+    new ResizeObserver(() => { if (svg.clientWidth) svg.style.setProperty('--k', geom.W / svg.clientWidth); }).observe(svg);
+    const sx = (i) => geom.L + (i / (geom.n - 1)) * (geom.W - geom.L - geom.R);
+    const render = (px, py) => {
+      const vx = sx(idx);
+      hair.setAttribute('x1', vx); hair.setAttribute('x2', vx); hair.setAttribute('visibility', 'visible');
+      const date = new Date(weeks[idx]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+      const lines = ['Week of ' + date];
+      for (const s of series) {
+        const i = idx - s.offset;
+        if (i >= 0) lines.push(fmt.format(s.weekly[i]) + '  ' + s.name + ' (' + s.indexed[i] + ')');
+      }
+      tip.textContent = lines.join('\n'); tip.hidden = false;
+      if (px === undefined) {
+        const r = svg.getBoundingClientRect();
+        px = r.left + (vx / geom.W) * r.width; py = r.top + r.height / 3;
+      }
+      place(px, py);
+    };
+    const hide = () => { tip.hidden = true; hair.setAttribute('visibility', 'hidden'); };
+    el.addEventListener('pointermove', (e) => {
+      const r = svg.getBoundingClientRect();
+      const vx = ((e.clientX - r.left) / r.width) * geom.W;
+      idx = Math.max(0, Math.min(geom.n - 1, Math.round(((vx - geom.L) / (geom.W - geom.L - geom.R)) * (geom.n - 1))));
+      render(e.clientX, e.clientY);
+    });
+    el.addEventListener('pointerleave', hide);
+    el.addEventListener('focus', () => render());
+    el.addEventListener('blur', hide);
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      idx = Math.max(0, Math.min(geom.n - 1, idx + (e.key === 'ArrowLeft' ? -1 : 1)));
+      render();
+    });
   });
 })();
 </script>

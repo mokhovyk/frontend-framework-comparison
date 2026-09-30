@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate": "node dist/generate-site.js",
+    "ecosystem": "node dist/fetch-ecosystem.js",
     "build": "tsc"
   },
   "dependencies": {
