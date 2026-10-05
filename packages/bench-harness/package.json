@@ -16,8 +16,8 @@
     "compare": "node dist/compare-cli.js"
   },
   "dependencies": {
-    "playwright": "^1.49.0",
-    "better-sqlite3": "^12.11.1"
+    "better-sqlite3": "^12.11.1",
+    "playwright": "^1.63.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

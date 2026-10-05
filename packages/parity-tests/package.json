@@ -8,7 +8,7 @@
     "test:ui": "playwright test --ui"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.63.0",
     "bench-harness": "workspace:*",
     "shared-data": "workspace:*",
     "typescript": "^5.7.0"
