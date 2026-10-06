@@ -138,6 +138,8 @@ Each framework runs first, second and third equally often, so slow drift (therma
 
 The PR workflow builds and benchmarks the PR's **base and head on the same runner**, one after the other, in reduced mode with a single round. A metric counts as a regression when the head median is more than 10% worse **and** a Mann-Whitney U test gives p < 0.05. Single-value metrics such as bundle size use the threshold only. When a PR changes `packages/bench-harness/src`, base and head were measured with different code, so the gate is advisory only.
 
+The regression gate is temporarily disabled with `ENFORCE_BENCHMARK_REGRESSIONS: 'false'` in `.github/workflows/benchmark-pr.yml`. Benchmarks and comparison reports still run, but reported regressions do not fail the PR job. Set the flag to `'true'` to restore enforcement.
+
 ## Published results
 
 The published results come from the full suite, run on every push to `main` and every Monday. Both runs share one workflow (`benchmark-publish.yml`) and take turns, so results are never written by two runs at once.
