@@ -1,10 +1,11 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
 import { LoadingSkeletonComponent } from '../components/loading-skeleton/loading-skeleton.component';
 import { createMockApi, type TableRow } from 'shared-data';
 
 type SortDirection = 'asc' | 'desc' | 'none';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-table-page',
   standalone: true,
   imports: [LoadingSkeletonComponent],

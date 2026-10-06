@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-profile',
   standalone: true,
   template: `

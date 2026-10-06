@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy } from '@angular/core';
 import { ChartWidgetComponent } from './components/chart-widget/chart-widget.component';
 import { KpiCardComponent } from './components/kpi-card/kpi-card.component';
 import { StatusGridComponent } from './components/status-grid/status-grid.component';
@@ -14,6 +14,7 @@ import {
 const CHART_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444'];
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-root',
   standalone: true,
   imports: [ChartWidgetComponent, KpiCardComponent, StatusGridComponent, DashboardTableComponent],

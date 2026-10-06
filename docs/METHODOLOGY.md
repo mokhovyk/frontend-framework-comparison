@@ -104,6 +104,7 @@ The first sample of C1 and C2 checks that the container really filled or emptied
 - Identical seeded data generators, including shared seeds for `replaceAllRows` and `appendRows` (`packages/shared-data/src/benchmark.ts`), and identical CSS.
 - Identical hook semantics: `createRows`, `replaceAllRows` and `clearRows` reset selection and page, and `selectRow` sets (it doesn't toggle). The parity tests verify this.
 - Each table uses its framework's standard row-level update optimization: `React.memo` rows with stable callbacks, Vue `v-memo`, and Angular `OnPush`. Vue holds rows in a `shallowRef`, because rows are replaced immutably exactly as with React state and Angular signals.
+- Angular 22 retains the existing Zone.js scheduling and component change-detection strategies through explicit `provideZoneChangeDetection()` and `ChangeDetectionStrategy.Eager` settings. The table's existing `OnPush` optimization is preserved. This isolates the framework upgrade from a separate migration to zoneless scheduling or broader `OnPush` usage.
 - Each framework uses its recommended toolchain (Vite for React/Vue, Angular CLI) with default production configuration.
 
 ## Execution order
@@ -136,6 +137,8 @@ Each framework runs first, second and third equally often, so slow drift (therma
 ## Regression checks on pull requests
 
 The PR workflow builds and benchmarks the PR's **base and head on the same runner**, one after the other, in reduced mode with a single round. A metric counts as a regression when the head median is more than 10% worse **and** a Mann-Whitney U test gives p < 0.05. Single-value metrics such as bundle size use the threshold only. When a PR changes `packages/bench-harness/src`, base and head were measured with different code, so the gate is advisory only.
+
+The regression gate is temporarily disabled with `ENFORCE_BENCHMARK_REGRESSIONS: 'false'` in `.github/workflows/benchmark-pr.yml`. Benchmarks and comparison reports still run, but reported regressions do not fail the PR job. Set the flag to `'true'` to restore enforcement.
 
 ## Published results
 

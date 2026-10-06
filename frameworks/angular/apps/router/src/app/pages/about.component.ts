@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-about',
   standalone: true,
   template: `
@@ -14,7 +15,7 @@ import { Component } from '@angular/core';
         across identical real-world scenarios.
       </p>
       <p style="margin-bottom: 16px;">
-        <strong>Framework:</strong> Angular 19<br/>
+        <strong>Framework:</strong> Angular 22<br/>
         <strong>State Management:</strong> Signals + RxJS<br/>
         <strong>Routing:</strong> Angular Router with lazy loading<br/>
         <strong>Forms:</strong> Reactive Forms (FormGroup / FormArray)

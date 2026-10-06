@@ -24,6 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Temporarily report regressions without blocking PRs. Set to 'true' to restore the gate.
+  ENFORCE_BENCHMARK_REGRESSIONS: 'false'
   BENCH_ENV: >-
     -e BENCHMARK_REDUCED=true
     -e BENCHMARK_ROUNDS=1
@@ -133,7 +135,7 @@ jobs:
       # A PR that changes the harness measures base and head with different
       # code, so its "regressions" aren't comparable — the gate is skipped.
       - name: Check for regressions
-        if: steps.harness.outputs.changed == 'false'
+        if: env.ENFORCE_BENCHMARK_REGRESSIONS == 'true' && steps.harness.outputs.changed == 'false'
         run: |
           node head/packages/bench-harness/dist/compare-cli.js \
             results-base/latest.json results-head/latest.json

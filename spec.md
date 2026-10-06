@@ -1,6 +1,6 @@
 # Frontend Framework Benchmark Suite — Specification
 
-> **Frameworks under test:** React 19, Angular 19, Vue 3.5
+> **Frameworks under test:** React 19, Angular 22, Vue 3.5
 > **Last updated:** 2026-04-03
 
 ---
@@ -264,7 +264,7 @@ Every framework must implement each of the following five applications with **ex
 **Docker Container:**
 
 ```dockerfile
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 # Pin Chrome version
 RUN apt-get update && apt-get install -y \
@@ -283,7 +283,7 @@ RUN apt-get update && apt-get install -y \
 | CPU                                | 2 cores (pinned via `--cpus=2`)                       |
 | RAM                                | 4 GB (via `--memory=4g`)                              |
 | Chrome version                     | Pinned to exact version in Dockerfile                 |
-| Node.js version                    | 22 LTS (pinned in `.nvmrc` and Dockerfile)            |
+| Node.js version                    | 24 LTS, minimum 24.15.0 (`.nvmrc` and Dockerfile)     |
 | OS                                 | Debian Bookworm (Docker)                              |
 | Display                            | Xvfb at 1920×1080                                     |
 | Network throttling (loading tests) | Chrome DevTools protocol: "Fast 3G" and "No throttle" |
@@ -321,7 +321,7 @@ RUN apt-get update && apt-get install -y \
 | Framework | Version               | Toolchain                       | SSR                                     |
 | --------- | --------------------- | ------------------------------- | --------------------------------------- |
 | React     | 19.x (latest stable)  | Vite 6 + `@vitejs/plugin-react` | `react-dom/server` + manual hydration   |
-| Angular   | 19.x (latest stable)  | Angular CLI 19 (`@angular/cli`) | `@angular/ssr`                          |
+| Angular   | 22.x (latest stable)  | Angular CLI 22 (`@angular/cli`) | `@angular/ssr`                          |
 | Vue       | 3.5.x (latest stable) | Vite 6 + `@vitejs/plugin-vue`   | `@vue/server-renderer` + `createSSRApp` |
 
 ### 5.2 Configuration Rules
@@ -359,10 +359,10 @@ Every benchmark run produces a JSON file:
     "commit": "abc123",
     "dockerImage": "bench:1.0.0",
     "chromeVersion": "131.0.6778.100",
-    "nodeVersion": "22.14.0",
+    "nodeVersion": "24.15.0",
     "frameworks": {
       "react": "19.1.0",
-      "angular": "19.2.0",
+      "angular": "22.1.7",
       "vue": "3.5.13",
     }
   },

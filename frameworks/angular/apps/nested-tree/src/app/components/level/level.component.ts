@@ -1,8 +1,9 @@
-import { Component, input, signal, forwardRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, signal, forwardRef } from '@angular/core';
 import { ThemeService } from './theme.service';
 import { CounterService } from './counter.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-level',
   standalone: true,
   imports: [forwardRef(() => LevelComponent)],

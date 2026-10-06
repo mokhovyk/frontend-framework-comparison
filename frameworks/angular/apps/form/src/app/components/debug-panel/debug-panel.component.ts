@@ -1,6 +1,7 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-debug-panel',
   standalone: true,
   template: `

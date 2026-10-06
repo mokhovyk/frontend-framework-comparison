@@ -1,4 +1,4 @@
-import { ApplicationRef, Component, inject, signal, computed, effect, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ApplicationRef, Component, inject, signal, computed, effect, OnInit } from '@angular/core';
 import { DataTableComponent } from './components/data-table/data-table.component';
 import { PaginationComponent } from './components/pagination/pagination.component';
 import {
@@ -24,6 +24,7 @@ declare global {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-root',
   standalone: true,
   imports: [DataTableComponent, PaginationComponent],
