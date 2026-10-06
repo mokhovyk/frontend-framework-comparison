@@ -1,8 +1,9 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators, ValidatorFn } from '@angular/forms';
 import { formSchema, type FormField, type FormSchema } from 'shared-data';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-form-page',
   standalone: true,
   imports: [ReactiveFormsModule],

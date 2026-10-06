@@ -1,9 +1,10 @@
-import { ApplicationRef, Component, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ApplicationRef, Component, inject, signal, OnInit } from '@angular/core';
 import { LevelComponent } from './components/level/level.component';
 import { ThemeService } from './components/level/theme.service';
 import { CounterService } from './components/level/counter.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-root',
   standalone: true,
   imports: [LevelComponent],

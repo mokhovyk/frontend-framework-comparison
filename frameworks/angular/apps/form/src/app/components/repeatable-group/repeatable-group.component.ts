@@ -1,8 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 import type { RepeatableGroupField } from 'shared-data';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-repeatable-group',
   standalone: true,
   imports: [ReactiveFormsModule],

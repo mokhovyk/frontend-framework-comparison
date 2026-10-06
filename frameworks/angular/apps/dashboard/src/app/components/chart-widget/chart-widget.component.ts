@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   input,
   effect,
@@ -9,6 +10,7 @@ import {
 import { renderChart, type ChartConfig } from 'shared-data';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-chart-widget',
   standalone: true,
   template: `

@@ -1,11 +1,11 @@
 # Frontend Framework Benchmark Suite
 
-A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 19**, and **Vue 3.5** across real-world application scenarios.
+A comprehensive, reproducible benchmark suite comparing **React 19**, **Angular 22**, and **Vue 3.5** across real-world application scenarios.
 
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 24+, pnpm 9+
+# Prerequisites: Node.js 24.15+ (24.x) or 26+, pnpm 9+
 pnpm install
 pnpm build:all
 pnpm --filter bench-harness exec playwright install chromium
@@ -59,7 +59,7 @@ packages/
   results-site/     # Static site for results visualization
 frameworks/
   react/            # React 19 implementations
-  angular/          # Angular 19 implementations
+  angular/          # Angular 22 implementations
   vue/              # Vue 3.5 implementations
 ```
 

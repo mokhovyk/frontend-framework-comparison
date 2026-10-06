@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators, ValidatorFn } from '@angular/forms';
 import { FormFieldComponent } from './components/form-field/form-field.component';
 import { RepeatableGroupComponent } from './components/repeatable-group/repeatable-group.component';
@@ -13,6 +13,7 @@ declare global {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-root',
   standalone: true,
   imports: [
