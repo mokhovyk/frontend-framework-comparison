@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-06T18:47:37.670Z",
+  "fetchedAt": "2026-10-07T16:00:13.195Z",
   "metrics": {
     "weekly_downloads": {
       "react": 224422510,
@@ -12,9 +12,9 @@
       "vue": 1.2293300066991981
     },
     "npm_packages": {
-      "react": 191442,
-      "angular": 31858,
-      "vue": 56084
+      "react": 191568,
+      "angular": 31883,
+      "vue": 56132
     },
     "stable_releases": {
       "react": 25,
@@ -22,13 +22,13 @@
       "vue": 21
     },
     "github_stars": {
-      "react": 250912,
-      "angular": 101013,
+      "react": 250916,
+      "angular": 101016,
       "vue": 54585
     },
     "so_questions": {
-      "react": 473728,
-      "angular": 306362,
+      "react": 473729,
+      "angular": 306363,
       "vue": 107901
     }
   },
