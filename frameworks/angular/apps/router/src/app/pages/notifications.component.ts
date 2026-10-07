@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { LoadingSkeletonComponent } from '../components/loading-skeleton/loading-skeleton.component';
 import { createMockApi } from 'shared-data';
 
@@ -9,7 +9,6 @@ interface Notification {
 }
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-notifications',
   standalone: true,
   imports: [LoadingSkeletonComponent],

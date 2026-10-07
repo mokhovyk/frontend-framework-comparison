@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators, ValidatorFn } from '@angular/forms';
 import { FormFieldComponent } from './components/form-field/form-field.component';
 import { RepeatableGroupComponent } from './components/repeatable-group/repeatable-group.component';
@@ -13,7 +14,6 @@ declare global {
 }
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-root',
   standalone: true,
   imports: [
@@ -26,6 +26,8 @@ declare global {
   templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
   readonly schema: FormSchema = formSchema;
   form!: FormGroup;
   readonly submitted = signal(false);
@@ -84,6 +86,10 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.buildForm();
+    // Reactive form mutations (including timed group removals) need to notify zoneless rendering.
+    this.form.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.changeDetector.markForCheck();
+    });
     this.exposeBenchmarkHooks();
   }
 

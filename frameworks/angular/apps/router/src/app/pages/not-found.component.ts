@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-not-found',
   standalone: true,
   imports: [RouterLink],

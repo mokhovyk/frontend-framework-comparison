@@ -54,6 +54,35 @@ test.describe('Form App Parity', () => {
     expect(value).toBe('');
   });
 
+  test('reset clears field errors before the form is submitted', async ({ page }) => {
+    const firstName = page.locator('input[name="firstName"]');
+    await firstName.fill('x');
+    await firstName.blur();
+    await expect(firstName).toHaveClass(/(^|\s)invalid(\s|$)/);
+
+    await page.getByRole('button', { name: 'Reset', exact: true }).click();
+
+    await expect(firstName).toHaveValue('');
+    await expect(firstName).not.toHaveClass(/(^|\s)invalid(\s|$)/);
+    await expect(page.locator('.error-message')).toHaveCount(0);
+  });
+
+  test('stress test renders group removals while timers are running', async ({ page }) => {
+    await page.clock.install();
+    await page.getByRole('button', { name: 'Stress Test', exact: true }).click();
+    const groups = page.locator('.repeatable-group');
+    await expect(groups.first()).toBeVisible();
+    const initialCount = await groups.count();
+
+    await page.clock.runFor(200);
+    const remainingCount = await groups.count();
+    expect(remainingCount).toBeGreaterThan(0);
+    expect(remainingCount).toBeLessThan(initialCount);
+
+    await page.clock.runFor(3000);
+    await expect(groups).toHaveCount(0);
+  });
+
   test('debug panel shows live JSON', async ({ page }) => {
     const debug = page.locator('.debug-panel pre');
     await expect(debug).toBeVisible();

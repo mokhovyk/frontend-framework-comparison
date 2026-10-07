@@ -104,7 +104,7 @@ The first sample of C1 and C2 checks that the container really filled or emptied
 - Identical seeded data generators, including shared seeds for `replaceAllRows` and `appendRows` (`packages/shared-data/src/benchmark.ts`), and identical CSS.
 - Identical hook semantics: `createRows`, `replaceAllRows` and `clearRows` reset selection and page, and `selectRow` sets (it doesn't toggle). The parity tests verify this.
 - Each table uses its framework's standard row-level update optimization: `React.memo` rows with stable callbacks, Vue `v-memo`, and Angular `OnPush`. Vue holds rows in a `shallowRef`, because rows are replaced immutably exactly as with React state and Angular signals.
-- Angular 22 retains the existing Zone.js scheduling and component change-detection strategies through explicit `provideZoneChangeDetection()` and `ChangeDetectionStrategy.Eager` settings. The table's existing `OnPush` optimization is preserved. This isolates the framework upgrade from a separate migration to zoneless scheduling or broader `OnPush` usage.
+- Angular 22 uses its defaults: zoneless scheduling and `OnPush` change detection, with no Zone.js dependency or polyfill. Reactive forms notify Angular when their state changes. Table and tree benchmark hooks still call `ApplicationRef.tick()` to meet the same synchronous DOM-commit contract as React and Vue; these timings do not isolate automatic scheduling performance. Earlier runs that used Zone.js retain their original measurements and commit metadata.
 - Each framework uses its recommended toolchain (Vite for React/Vue, Angular CLI) with default production configuration.
 
 ## Execution order

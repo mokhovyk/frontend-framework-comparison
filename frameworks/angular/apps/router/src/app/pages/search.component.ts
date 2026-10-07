@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { createMockApi } from 'shared-data';
 
 interface SearchResult {
@@ -8,7 +8,6 @@ interface SearchResult {
 }
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-search',
   standalone: true,
   template: `

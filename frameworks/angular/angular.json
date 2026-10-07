@@ -17,7 +17,6 @@
             },
             "index": "apps/table/src/index.html",
             "browser": "apps/table/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/table/tsconfig.app.json",
             "styles": ["apps/table/src/styles.css"],
             "scripts": []
@@ -59,7 +58,6 @@
             },
             "index": "apps/nested-tree/src/index.html",
             "browser": "apps/nested-tree/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/nested-tree/tsconfig.app.json",
             "styles": ["apps/nested-tree/src/styles.css"],
             "scripts": []
@@ -101,7 +99,6 @@
             },
             "index": "apps/dashboard/src/index.html",
             "browser": "apps/dashboard/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/dashboard/tsconfig.app.json",
             "styles": ["apps/dashboard/src/styles.css"],
             "scripts": []
@@ -143,7 +140,6 @@
             },
             "index": "apps/form/src/index.html",
             "browser": "apps/form/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/form/tsconfig.app.json",
             "styles": ["apps/form/src/styles.css"],
             "scripts": []
@@ -185,7 +181,6 @@
             },
             "index": "apps/router/src/index.html",
             "browser": "apps/router/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/router/tsconfig.app.json",
             "styles": ["apps/router/src/styles.css"],
             "scripts": []
