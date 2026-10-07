@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-error-summary',
   standalone: true,
   template: `

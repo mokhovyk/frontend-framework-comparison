@@ -45,8 +45,7 @@ test.describe('Table App Parity', () => {
 
   test('row selection works', async ({ page }) => {
     await page.click('.data-table tbody tr:nth-child(3)');
-    const selected = await page.$$('.data-table tbody tr.selected');
-    expect(selected.length).toBe(1);
+    await expect(page.locator('.data-table tbody tr.selected')).toHaveCount(1);
   });
 
   test('pagination controls work', async ({ page }) => {

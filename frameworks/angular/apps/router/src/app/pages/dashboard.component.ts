@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, ElementRef, viewChild, AfterViewInit } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 import { LoadingSkeletonComponent } from '../components/loading-skeleton/loading-skeleton.component';
 import {
   createMockApi,
@@ -10,7 +10,6 @@ import {
 } from 'shared-data';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-dashboard-page',
   standalone: true,
   imports: [LoadingSkeletonComponent],

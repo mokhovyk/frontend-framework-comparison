@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import type { FormField } from 'shared-data';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-form-field',
   standalone: true,
   imports: [ReactiveFormsModule],

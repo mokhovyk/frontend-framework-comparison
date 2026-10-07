@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-login',
   standalone: true,
   template: `

@@ -1,9 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,
   selector: 'app-sidebar',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
